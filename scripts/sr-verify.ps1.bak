@@ -1,0 +1,82 @@
+# scripts/sr-verify.ps1  — 교체본 (포지셔널 인자 지원 + 안전 가드)
+# 사용법 예)
+#   .\scripts\sr-verify.ps1 -InitBaseline
+#   .\scripts\sr-verify.ps1 -Mode New -Path 'app\mbti\layout.tsx'
+#   .\scripts\sr-verify.ps1 -Mode Replace -Path 'app\franchise\brand\[id]\page.tsx'
+#   .\scripts\sr-verify.ps1 New 'app\mbti\layout.tsx'                # 위치 인자 OK
+#   .\scripts\sr-verify.ps1 Replace "app\franchise\brand\[id]\page.tsx"
+
+param(
+  [Parameter(Position=0)][ValidateSet('New','Replace')] [string]$Mode,
+  [Parameter(Position=1)] [string]$Path,
+  [Parameter(Position=2)] [string]$Baseline = ".\snapshots\hashes_기준.csv",
+  [switch]$InitBaseline,
+  [string]$Root = "C:\Users\USER\Desktop\프로젝트2\web"
+)
+
+$ErrorActionPreference = 'Stop'
+Set-Location $Root
+
+function Ok($m){ Write-Host $m -ForegroundColor Green }
+function Warn($m){ Write-Host $m -ForegroundColor Yellow }
+function Fail($m){ Write-Error $m; throw $m }
+
+# 0) 기준 해시 생성(최초 1회 또는 갱신)
+if ($InitBaseline) {
+  if (-not (Test-Path "_hashes.csv")) {
+    if (Test-Path ".\scripts\snap-tree.ps1") {
+      .\scripts\snap-tree.ps1 | Out-Null
+    } else { Fail "snap-tree.ps1이 없습니다. 먼저 생성하세요." }
+  }
+  New-Item -ItemType Directory -Path ".\snapshots" -ErrorAction SilentlyContinue | Out-Null
+  Copy-Item -Force "_hashes.csv" $Baseline
+  Ok "기준 해시 생성: $Baseline"
+  return
+}
+
+if (-not $Mode) { Fail "Mode(New|Replace)가 필요합니다. 예) -Mode New -Path 'app\mbti\layout.tsx' 또는: New 'app\mbti\layout.tsx'" }
+if (-not $Path) { Fail "검증할 상대 경로(-Path)가 필요합니다." }
+
+# 1) 경로 정규화
+$rel = $Path -replace '^[.\s\\\/]+',''
+$rel = $rel -replace '/','\'
+
+if (-not (Test-Path $rel)) { Fail "파일이 존재하지 않음: $rel" }
+
+function Test-GitStatus($expect) {
+  try {
+    if (Test-Path ".git") {
+      $st = git status --porcelain=v1 2>$null
+      $reg = [regex]::Escape($rel)
+      if ($expect -eq 'new') { return ($st -match "^\?\?\s+$reg$") }
+      if ($expect -eq 'mod') { return ($st -match "^\sM\s+$reg$" -or $st -match "^M\s\s$reg$") }
+    }
+  } catch { }
+  return $false
+}
+
+# 2) 기준 해시가 없으면 Git 상태로 대체 검증
+if (-not (Test-Path $Baseline)) {
+  Warn "기준 해시 없음 → Git 상태로 대체 검증"
+  switch ($Mode) {
+    'New'     { if (Test-GitStatus 'new') { Ok "[신규 검증 통과] $rel"; return } else { Fail "[실패] Git 기준으로 신규 아님: $rel" } }
+    'Replace' { if (Test-GitStatus 'mod') { Ok "[교체 검증 통과] $rel"; return } else { Fail "[실패] Git 기준으로 교체 아님: $rel" } }
+  }
+}
+
+# 3) 해시 기반 정밀 검증
+$baseline = Import-Csv $Baseline
+$baseRow  = $baseline | Where-Object { $_.Path -eq $rel }
+$curHash  = (Get-FileHash -Algorithm SHA256 -Path $rel).Hash
+
+switch ($Mode) {
+  'New' {
+    if (-not $baseRow) { Ok "[신규 검증 통과] 기준에 없던 경로: $rel"; return }
+    else { Fail "[실패] 기준에 이미 존재(신규 아님): $rel" }
+  }
+  'Replace' {
+    if (-not $baseRow) { Fail "[실패] 기준에 경로 없음(교체 근거 부족): $rel" }
+    elseif ($baseRow.Hash -ne $curHash) { Ok "[교체 검증 통과] 해시 변경됨: $rel"; return }
+    else { Fail "[실패] 해시 동일(교체 아님): $rel" }
+  }
+}

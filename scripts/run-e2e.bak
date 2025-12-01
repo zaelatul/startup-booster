@@ -1,0 +1,67 @@
+// 교체본 — scripts/run-e2e.mjs
+#!/usr/bin/env node
+import { spawn } from 'node:child_process';
+import http from 'node:http';
+
+const PORT = Number(process.env.PORT || 5174);
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+function ping(url, timeout = 1000) {
+  return new Promise((resolve) => {
+    const req = http.get(url, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(timeout, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function waitFor(url, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await ping(url)) return true;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
+function run(cmd, args, extraEnv = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, {
+      stdio: 'inherit',
+      shell: true,
+      env: { ...process.env, ...extraEnv },
+    });
+    child.on('exit', (code) => resolve(code ?? 0));
+  });
+}
+
+(async () => {
+  console.log(`[run-e2e] 헬스체크: ${BASE_URL}`);
+  const alive = await ping(BASE_URL);
+
+  if (!alive) {
+    console.log(`[run-e2e] dev 서버 없음 → ${BASE_URL}로 기동`);
+    // Next.js dev 서버 기동(5174 고정)
+    spawn('npm', ['run', 'dev', '--', '-p', String(PORT)], {
+      stdio: 'inherit',
+      shell: true,
+      env: process.env,
+    });
+    const ok = await waitFor(BASE_URL, 60_000);
+    if (!ok) {
+      console.error(`[run-e2e] dev 서버 기동 실패: ${BASE_URL} 응답 없음`);
+      process.exit(1);
+    }
+  } else {
+    console.log('[run-e2e] dev 서버 감지됨 → 재사용');
+  }
+
+  // Playwright 실행 (환경으로 baseURL 전달)
+  const code = await run('npx', ['playwright', 'test', '--reporter=list,html'], { BASE_URL });
+  process.exit(code);
+})();

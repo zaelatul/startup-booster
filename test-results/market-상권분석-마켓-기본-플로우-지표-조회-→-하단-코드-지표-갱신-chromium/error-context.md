@@ -1,0 +1,85 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - link "상권분석 베타 오픈 상권분석 베타 오픈 지수=100 기준" [ref=e4] [cursor=pointer]:
+      - /url: /market
+      - img "상권분석 베타 오픈" [ref=e5]
+      - generic [ref=e6]:
+        - generic [ref=e7]: 상권분석 베타 오픈
+        - generic [ref=e8]: 지수=100 기준
+    - link "프랜차이즈 탐색 강화 프랜차이즈 탐색 강화 검색·정렬·다중카테고리" [ref=e9] [cursor=pointer]:
+      - /url: /franchise/explore
+      - img "프랜차이즈 탐색 강화" [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]: 프랜차이즈 탐색 강화
+        - generic [ref=e13]: 검색·정렬·다중카테고리
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - heading "상권분석 (베타)" [level=1] [ref=e16]
+      - link "프랜차이즈 탐색으로 →" [ref=e17] [cursor=pointer]:
+        - /url: /franchise/explore
+    - generic [ref=e18]:
+      - generic [ref=e19]: "# 데이터 스냅샷 폴백 지원"
+      - generic [ref=e20]: "# 지수=100 기준, 최근 추세 한눈에"
+      - generic [ref=e21]: "# 주소복사로 원문 확인"
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: 행정동 코드
+          - 'textbox "예: 1168064000" [ref=e27]': "1144066000"
+          - generic [ref=e28]:
+            - button "서울 송파구 잠실동(샘플)" [ref=e29]
+            - button "서울 금천구 가산동(샘플)" [ref=e30]
+            - button "서울 마포구 서교동(샘플)" [ref=e31]
+        - generic [ref=e32]:
+          - generic [ref=e33]: 업종
+          - combobox [ref=e34]:
+            - option "F&B(음식)" [selected]
+            - option "Retail(소매)"
+            - option "Service(서비스)"
+      - generic [ref=e35]:
+        - button "지표 조회" [ref=e36]
+        - button "요청 URL 복사" [ref=e37]
+        - button "새 탭에서 열기" [ref=e38]
+        - button "간단 리포트 복사" [ref=e39]
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]: 평균매출
+        - generic [ref=e43]: ₩72,000,000
+      - generic [ref=e44]:
+        - generic [ref=e45]: 수익률(순이익/매출)
+        - generic [ref=e46]: 19.2%
+      - generic [ref=e47]:
+        - generic [ref=e48]: 개업률
+        - generic [ref=e49]: 3.0%
+      - generic [ref=e50]:
+        - generic [ref=e51]: 폐업률
+        - generic [ref=e52]: 1.0%
+    - generic [ref=e53]:
+      - generic [ref=e54]:
+        - heading "매출 트렌드(지수)" [level=2] [ref=e55]
+        - generic [ref=e56]: 기준월=100, 값이 클수록 최근 흐름이 우상향
+      - generic [ref=e57]:
+        - img [ref=e58]
+        - generic [ref=e60]:
+          - generic [ref=e61]: "최근 지수: 100 → 102 → 104 → 104 → 108 → 112"
+          - generic [ref=e62]: "범위: 100 ~ 112"
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]: 행정동 코드
+          - generic [ref=e66]: "1144066000"
+        - generic [ref=e67]:
+          - generic [ref=e68]: 업종
+          - generic [ref=e69]: FNB
+        - generic [ref=e70]:
+          - generic [ref=e71]: 데이터 출처
+          - generic [ref=e73]:
+            - generic [ref=e74]: local-snapshot
+            - generic [ref=e75]: 업데이트 11/12/2025, 6:22:36 PM
+      - paragraph [ref=e76]: ※ 통계는 스냅샷 모드일 수 있습니다. 공공 포털의 원문(소상공인시장진흥공단, 공정위 등)과 함께 참고하세요.
+  - button "Open Next.js Dev Tools" [ref=e82] [cursor=pointer]:
+    - img [ref=e83]
+  - alert [ref=e86]
+```

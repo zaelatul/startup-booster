@@ -1,0 +1,27 @@
+﻿ M package-lock.json
+ M package.json
+ M src/app/layout.tsx
+ M tsconfig.json
+?? #snapshots/
+?? __backup_market_20251112_231902/
+?? _changed_since.txt
+?? _git_status.txt
+?? _hashes.csv
+?? _tree.txt
+?? app/
+?? data/
+?? e2e/
+?? playwright-report/
+?? playwright.config.ts
+?? postcss.config.js
+?? scripts/
+?? snapshots/
+?? src/app/api/
+?? src/app/diagnostics/
+?? src/app/franchise/
+?? src/app/market/
+?? src/app/mbti/
+?? src/components/
+?? src/lib/
+?? tailwind.config.ts.bak
+?? test-results/
