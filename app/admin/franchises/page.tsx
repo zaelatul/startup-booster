@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
   MagnifyingGlassIcon, StarIcon, PencilIcon, 
-  ArrowPathIcon, TrashIcon, PlusIcon, ArrowLeftIcon, PhotoIcon // [수정] ArrowLeftIcon, PhotoIcon 추가됨!
+  ArrowPathIcon, TrashIcon, PlusIcon, ArrowLeftIcon, PhotoIcon 
 } from '@heroicons/react/24/solid';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// [핵심 수정] 환경변수가 없으면 임시 주소라도 넣어서 빌드가 터지지 않게 방어!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Franchise = {
   id: number;
@@ -32,8 +32,10 @@ export default function AdminFranchisePage() {
   const [search, setSearch] = useState('');
   const [isEditing, setIsEditing] = useState<any>(null);
 
-  // 목록 불러오기
   const fetchList = async () => {
+    // [방어 코드] 실제 키가 없을 땐 실행 안 함
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+
     setLoading(true);
     let query = supabase
       .from('franchises')
@@ -89,7 +91,6 @@ export default function AdminFranchisePage() {
     fetchList();
   };
 
-  // 테스트 데이터 생성
   const generateMockData = async () => {
     if (!confirm('테스트 데이터 10개를 생성하시겠습니까?')) return;
     setLoading(true);
@@ -190,7 +191,7 @@ export default function AdminFranchisePage() {
                       : item.average_sales.toLocaleString()}
                   </td>
                   <td className="p-4 text-center flex justify-center gap-2">
-                    <button onClick={() => handleEditStart(item)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                    <button onClick={() => setIsEditing(item)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
                       <PencilIcon className="w-4 h-4" />
                     </button>
                     <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
