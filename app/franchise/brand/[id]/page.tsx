@@ -1,11 +1,12 @@
-	import Link from 'next/link';
+import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { BRANDS } from '@/lib/reco';
 import { toViewModel } from '@/lib/brand-logic';
-import BrandDetailClient from './BrandDetailClient'; // 방금 만든 그 파일!
+import BrandDetailClient from './BrandDetailClient'; 
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// [핵심 수정] 환경변수가 없을 때를 대비한 안전장치 (빌드 에러 방지)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 type PageProps = {
@@ -18,30 +19,32 @@ export default async function FranchiseBrandPage({ params }: PageProps) {
   // 1. Mock 데이터 우선 검색
   let raw = (BRANDS as any[]).find((b) => b.id === id || b.id === id.replace(/-\d+$/, ''));
 
-  // 2. DB 검색
-  if (!raw) {
-    const { data } = await supabase
-      .from('franchises')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (data) {
-      // DB 데이터를 뷰모델 형식으로 매핑 (엉아의 DB 구조 반영)
-      raw = {
-        id: String(data.id),
-        name: data.brand_name,
-        category: data.category,
-        startupCostTotal: data.startup_cost,
-        avgSales: data.average_sales,
-        storesTotal: data.branch_count,
-        mainImage: data.image_url,
-        // 나머지 필드 안전장치
-        hqName: data.brand_name,
-        feeJoin: 0, feeDeposit: 0, feeTraining: 0, interiorCostPerPy: 0,
-        establishedYear: data.established_year,
-        storeTrend3Y: [], // 추후 연동
-      };
+  // 2. DB 검색 (환경변수가 제대로 있을 때만 실행)
+  if (!raw && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const { data } = await supabase
+        .from('franchises')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (data) {
+        raw = {
+          id: String(data.id),
+          name: data.brand_name,
+          category: data.category,
+          startupCostTotal: data.startup_cost,
+          avgSales: data.average_sales,
+          storesTotal: data.stores_total || data.branch_count, // 컬럼명 호환
+          mainImage: data.image_url,
+          hqName: data.brand_name,
+          feeJoin: 0, feeDeposit: 0, feeTraining: 0, interiorCostPerPy: 0,
+          establishedYear: data.established_year,
+          storeTrend3Y: [],
+        };
+      }
+    } catch (e) {
+      console.error('DB Fetch Error:', e);
     }
   }
 
