@@ -4,10 +4,12 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { TrashIcon, PencilIcon, PlusIcon, PhotoIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-);
+// [중요] 엉아의 진짜 키를 여기에 직접 따옴표 안에 붙여넣으세요!
+// 예: const supabaseUrl = 'https://abcdefg.supabase.co';
+const supabaseUrl = 'https://epnkmxtkbxkemmweswij.supabase.co'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbmtteHRrYnhrZW1td2Vzd2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMTk2OTUsImV4cCI6MjA3Nzg5NTY5NX0.f_fhGUmzEBxKoFPAdU1OFr7sEhXGLMG4C-uY2G3BsJs';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- 타입 정의 ---
 type InteriorProduct = {
@@ -83,7 +85,7 @@ function TabButton({ label, active, onClick }: any) {
 }
 
 // --------------------------------------------------------------------------
-// 1. 자재 관리 컴포넌트 (규격/장당가격 수정됨)
+// 1. 자재 관리 컴포넌트
 // --------------------------------------------------------------------------
 function ProductManager() {
   const [list, setList] = useState<InteriorProduct[]>([]);
@@ -102,9 +104,17 @@ function ProductManager() {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
     const fileName = `interior/product_${Date.now()}_${file.name}`;
+    
     setUploading(true);
+    // [수정] 버킷 이름을 'uploads'로 통일 (SQL과 일치)
     const { error } = await supabase.storage.from('uploads').upload(fileName, file);
-    if (error) { alert('업로드 실패'); setUploading(false); return; }
+    
+    if (error) { 
+        alert('업로드 실패: ' + error.message); 
+        setUploading(false); 
+        return; 
+    }
+    
     const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
     setForm({ ...form, image_url: data.publicUrl });
     setUploading(false);
@@ -164,7 +174,7 @@ function ProductManager() {
         <div className="flex items-center gap-3">
            {form.image_url && <img src={form.image_url} alt="preview" className="w-16 h-16 rounded-lg object-cover bg-slate-100" />}
            <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800">
-              {uploading ? '...' : '이미지 선택'}
+              {uploading ? '업로드 중...' : '이미지 선택'}
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
            </label>
         </div>
@@ -221,8 +231,16 @@ function CaseManager() {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
     const fileName = `interior/case_${field}_${Date.now()}`;
+    
     setUploading(true);
-    await supabase.storage.from('uploads').upload(fileName, file);
+    const { error } = await supabase.storage.from('uploads').upload(fileName, file);
+    
+    if (error) { 
+        alert('업로드 실패: ' + error.message); 
+        setUploading(false); 
+        return; 
+    }
+
     const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
     setForm({ ...form, [field]: data.publicUrl });
     setUploading(false);
@@ -234,6 +252,7 @@ function CaseManager() {
       ? await supabase.from('interior_cases').update(payload).eq('id', form.id)
       : await supabase.from('interior_cases').insert([payload]);
     if (!error) { setIsEditing(false); setForm({}); fetchList(); }
+    else { alert('오류: ' + error.message); }
   };
 
   const handleDelete = async (id: string) => {
