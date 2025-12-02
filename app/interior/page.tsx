@@ -16,10 +16,10 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 안전장치 적용된 Supabase 클라이언트
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PROMO_BANNERS = [
   { id: 1, title: '벽면 셀프 시공만으로 분위기 확 바꾸기', description: '소프트스톤, 데코 패널 등 벽면만 먼저 손보는 셀프 시공', tag: '소프트스톤 · 데코 패널', imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?q=80&w=1200' },
@@ -74,7 +74,7 @@ function CaseDetailModal({ caseItem, onClose }: { caseItem: any; onClose: () => 
           <XMarkIcon className="h-6 w-6" />
         </button>
         <div className="relative h-64 md:h-auto md:w-3/5 bg-slate-900">
-          <img src={caseItem.after_image} alt={caseItem.title} className="h-full w-full object-cover" />
+          <img src={caseItem.after_image} alt={caseItem.title} className="h-full w-full object-cover opacity-90" />
           <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-8">
              <h3 className="text-2xl font-bold text-white mb-1">{caseItem.title}</h3>
              <p className="text-indigo-300 text-sm font-bold">{Number(caseItem.cost_saved).toLocaleString()}원 절감 사례</p>
@@ -118,7 +118,16 @@ export default function InteriorPage() {
     price_per_piece: 5000
   });
 
+  // [수정] 직접 입력 모드 스위치 추가
+  const [isManualMode, setIsManualMode] = useState(false);
+
   useEffect(() => {
+    // 환경변수가 없으면 DB 호출 스킵 (빌드 에러 방지)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        setLoading(false);
+        return;
+    }
+    
     const fetchData = async () => {
       setLoading(true);
       const { data: prodData } = await supabase
@@ -137,9 +146,20 @@ export default function InteriorPage() {
     };
     fetchData();
     setProductLimit(6);
+    // 탭 변경 시 선택 초기화
+    setSelectedProduct(null);
+    setIsManualMode(false);
   }, [activeTab]);
 
-  const targetProduct = { ...manualSpec, name: '직접 입력 자재' };
+  // [핵심] 계산 로직 분기
+  let targetProduct;
+  if (isManualMode) {
+    targetProduct = { ...manualSpec, name: '직접 입력 자재' };
+  } else {
+    // 선택된 자재가 없으면, 해당 탭의 첫 번째 자재를 기본값으로 사용 (없으면 더미)
+    targetProduct = selectedProduct || (products.length > 0 ? products[0] : { tile_width: 600, tile_height: 600, price_per_piece: 5000 });
+  }
+
   const { materialCost, proCost, saveCost, pieceCount, isValid, spec } = calculateCost(
     widthM, lengthM, zoneCount, activeTab, targetProduct
   );
@@ -178,12 +198,22 @@ export default function InteriorPage() {
                 <button onClick={() => setActiveTab('floor')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'floor' ? 'bg-[#1E293B] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>바닥 (Floor)</button>
               </div>
            </div>
+
            {loading ? <div className="py-20 text-center text-slate-400">데이터를 불러오는 중...</div> : visibleProducts.length === 0 ? (
               <div className="py-20 text-center text-slate-400 bg-white rounded-2xl border border-slate-100">등록된 자재가 없습니다.</div>
            ) : (
              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                 {visibleProducts.map((item) => (
-                   <div key={item.id} onClick={() => setSelectedProduct(item)} className="group cursor-pointer bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl hover:border-indigo-100 transition-all hover:-translate-y-1">
+                   <div 
+                      key={item.id} 
+                      onClick={() => {
+                         setSelectedProduct(item);
+                         setIsManualMode(false);
+                         // 계산기 쪽으로 부드럽게 이동
+                         document.getElementById('calculator-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }} 
+                      className={`group cursor-pointer bg-white rounded-2xl overflow-hidden shadow-sm border transition-all hover:-translate-y-1 ${selectedProduct?.id === item.id && !isManualMode ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-100 hover:border-indigo-100'}`}
+                   >
                       <div className="relative h-40 bg-slate-200 overflow-hidden">
                          <img src={item.image_url || 'https://via.placeholder.com/400'} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       </div>
@@ -191,7 +221,7 @@ export default function InteriorPage() {
                          <p className="text-[10px] text-indigo-600 font-bold mb-1">{item.tag}</p>
                          <h3 className="text-sm font-bold text-slate-900 line-clamp-1">{item.name}</h3>
                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-slate-400">{item.tile_width}x{item.tile_height}</span>
+                            <span className="text-xs text-slate-400">{item.tile_width}x{item.tile_height}mm</span>
                             <span className="text-sm font-extrabold text-slate-900">{Number(item.price_per_piece).toLocaleString()}<span className="text-xs font-normal">원/장</span></span>
                          </div>
                       </div>
@@ -206,44 +236,79 @@ export default function InteriorPage() {
            )}
         </section>
 
-        {/* [수정됨] 견적 계산기 (안내 문구 줄바꿈 반영) */}
-        <section className="rounded-3xl bg-[#1E293B] p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
+        {/* 견적 계산기 */}
+        <section id="calculator-section" className="rounded-3xl bg-[#1E293B] p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+           
            <div className="relative z-10 flex flex-col lg:flex-row gap-10 items-start">
               <div className="flex-1 w-full">
-                 <div className="flex items-center gap-2 mb-2">
-                    <CalculatorIcon className="w-6 h-6 text-yellow-400" />
-                    <h2 className="text-xl font-bold">셀프 견적 계산기</h2>
+                 <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                       <CalculatorIcon className="w-6 h-6 text-yellow-400" />
+                       <h2 className="text-xl font-bold">셀프 견적 계산기</h2>
+                    </div>
+                    
+                    {/* 모드 스위치 */}
+                    <div className="flex bg-slate-800 rounded-lg p-1">
+                       <button 
+                          onClick={() => setIsManualMode(false)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                       >
+                          선택 자재
+                       </button>
+                       <button 
+                          onClick={() => setIsManualMode(true)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                       >
+                          <PencilSquareIcon className="w-3 h-3 inline mr-1"/>직접 입력
+                       </button>
+                    </div>
                  </div>
-                 
-                 {/* [핵심 수정 포인트] */}
+
+                 {/* 안내 문구 */}
                  <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10 flex items-start gap-3">
                     <PencilSquareIcon className="w-5 h-5 text-indigo-400 mt-1 shrink-0" />
                     <div>
-                       <p className="text-sm text-slate-200 mb-1">내가 알아본 자재의 <strong>규격과 가격</strong>을 직접 입력해서 계산합니다.</p>
-                       <p className="text-xs text-slate-500 font-medium">(자재 규격 및 단가 확인 후 입력하세요)</p>
+                       {isManualMode ? (
+                          <>
+                             <p className="text-sm text-slate-200 mb-1">내가 알아본 자재의 <strong>규격과 가격</strong>을 직접 입력해서 계산합니다.</p>
+                             <p className="text-xs text-slate-500 font-medium">(자재 규격 및 단가 확인 후 입력하세요)</p>
+                          </>
+                       ) : (
+                          <>
+                             <p className="text-sm text-slate-200 mb-1">위 리스트에서 <strong>자재를 선택</strong>하면 해당 스펙으로 자동 계산됩니다.</p>
+                             <p className="text-xs text-slate-500 font-medium">{selectedProduct ? `선택됨: ${selectedProduct.name}` : '(선택된 자재 없음 -> 기본값 적용)'}</p>
+                          </>
+                       )}
                     </div>
                  </div>
 
                  <div className="space-y-6">
+                    {/* 1. 시공 면적 입력 */}
                     <div>
                        <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 1. 시공할 공간 크기</p>
                        <div className="grid grid-cols-3 gap-3">
-                          <div><label className="text-xs text-slate-400 mb-1 block">가로 (m)</label><input type="number" value={widthM} onChange={(e) => setWidthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
-                          <div><label className="text-xs text-slate-400 mb-1 block">세로 (m)</label><input type="number" value={lengthM} onChange={(e) => setLengthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
-                          <div><label className="text-xs text-slate-400 mb-1 block">구역 수</label><input type="number" value={zoneCount} onChange={(e) => setZoneCount(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                          <div><label className="text-xs text-slate-400 mb-1 block">가로 (m)</label><input type="number" value={widthM} onChange={(e) => setWidthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none transition-colors" /></div>
+                          <div><label className="text-xs text-slate-400 mb-1 block">세로 (m)</label><input type="number" value={lengthM} onChange={(e) => setLengthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none transition-colors" /></div>
+                          <div><label className="text-xs text-slate-400 mb-1 block">구역 수</label><input type="number" value={zoneCount} onChange={(e) => setZoneCount(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none transition-colors" /></div>
                        </div>
                     </div>
-                    <div>
-                        <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 2. 자재 정보 입력</p>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div><label className="text-xs text-slate-400 mb-1 block">자재 가로 (mm)</label><input type="number" value={manualSpec.tile_width} onChange={(e) => setManualSpec({...manualSpec, tile_width: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
-                            <div><label className="text-xs text-slate-400 mb-1 block">자재 세로 (mm)</label><input type="number" value={manualSpec.tile_height} onChange={(e) => setManualSpec({...manualSpec, tile_height: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
-                            <div><label className="text-xs text-slate-400 mb-1 block">장당 가격 (원)</label><input type="number" value={manualSpec.price_per_piece} onChange={(e) => setManualSpec({...manualSpec, price_per_piece: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
-                        </div>
-                    </div>
+
+                    {/* 2. 자재 스펙 입력 (수동 모드일 때만 활성화) */}
+                    {isManualMode && (
+                       <div className="animate-fadeIn">
+                          <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 2. 자재 정보 입력</p>
+                          <div className="grid grid-cols-3 gap-3">
+                             <div><label className="text-xs text-slate-400 mb-1 block">자재 가로 (mm)</label><input type="number" value={manualSpec.tile_width} onChange={(e) => setManualSpec({...manualSpec, tile_width: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                             <div><label className="text-xs text-slate-400 mb-1 block">자재 세로 (mm)</label><input type="number" value={manualSpec.tile_height} onChange={(e) => setManualSpec({...manualSpec, tile_height: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                             <div><label className="text-xs text-slate-400 mb-1 block">장당 가격 (원)</label><input type="number" value={manualSpec.price_per_piece} onChange={(e) => setManualSpec({...manualSpec, price_per_piece: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                          </div>
+                       </div>
+                    )}
                  </div>
               </div>
+
+              {/* 결과 카드 */}
               <div className="w-full lg:w-96 bg-white rounded-2xl p-6 text-slate-900 shadow-lg shrink-0">
                  {isValid ? (
                     <>

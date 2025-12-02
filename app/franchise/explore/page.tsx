@@ -4,78 +4,46 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BRANDS } from '@/lib/reco';
-// Swiper 관련
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Pagination } from 'swiper/modules';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
-// 아이콘
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/solid';
 
 type AnyBrand = any;
-
-// [설정] 초기 12개, 더보기 누르면 8개씩 추가
 const INITIAL_LIMIT = 12; 
 const LOAD_MORE_STEP = 8; 
 
-// [배너 데이터]
+// 배너 데이터
 const PROMO_BANNERS = [
-  { 
-    id: 1, 
-    imageUrl: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?q=80&w=2070', 
-    title: '🚀 2024 상반기 창업 트렌드', 
-    description: '지금 가장 주목받는 프랜차이즈 핵심 정보', 
-    link: '#', 
-    bgColor: 'bg-[#1E293B]', 
-    textColor: 'text-white' 
-  },
-  { 
-    id: 2, 
-    imageUrl: 'https://images.unsplash.com/photo-1559925393-8be15074f927?q=80&w=2070', 
-    title: '☕ 카페 창업 A to Z', 
-    description: '성공적인 카페 창업을 위한 가이드', 
-    link: '#', 
-    bgColor: 'bg-[#0F172A]', 
-    textColor: 'text-white' 
-  },
+  { id: 1, imageUrl: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?q=80&w=2070', title: '🚀 2024 상반기 창업 트렌드', description: '지금 가장 주목받는 프랜차이즈 핵심 정보', link: '#', bgColor: 'bg-[#1E293B]', textColor: 'text-white' },
+  { id: 2, imageUrl: 'https://images.unsplash.com/photo-1559925393-8be15074f927?q=80&w=2070', title: '☕ 카페 창업 A to Z', description: '성공적인 카페 창업을 위한 가이드', link: '#', bgColor: 'bg-[#0F172A]', textColor: 'text-white' },
 ];
 
-// [유틸리티 함수]
+// 유틸 함수
 function safeNumber(value: unknown): number | undefined {
   if (value === null || value === undefined) return undefined;
   const n = Number(value);
   return Number.isFinite(n) ? n : undefined;
 }
-
 function fmtKRWShort(value?: number): string {
   if (!value) return '-';
   const v = Math.round(value);
   if (v >= 100_000_000) return `${(v / 100_000_000).toFixed(1)}억`;
   return `${(v / 10000).toLocaleString()}만`;
 }
-
 function fmtPCT(value?: number): string {
   if (value === undefined) return '-';
   return `${Number(value).toFixed(1)}%`;
 }
 
-// [뷰모델 정의]
+// 뷰모델 변환
 type ExploreBrand = {
-  id: string; 
-  name: string; 
-  primaryCategoryLabel: string; 
-  midCategoryName?: string;
-  avgSales?: number; 
-  avgSalesShort: string; 
-  openRateRecent?: number; 
-  closeRateRecent?: number;
-  profitMargin?: number; 
-  storesTotal?: number; 
-  establishedYear?: number;
-  heroImage?: string; 
-  detailHref: string; 
-  startupCost?: number; 
+  id: string; name: string; primaryCategoryLabel: string; midCategoryName?: string;
+  avgSales?: number; avgSalesShort: string; openRateRecent?: number; closeRateRecent?: number;
+  profitMargin?: number; storesTotal?: number; establishedYear?: number;
+  heroImage?: string; detailHref: string; startupCost?: number; 
 };
 
 function toExploreBrand(raw: AnyBrand): ExploreBrand {
@@ -106,9 +74,6 @@ function toExploreBrand(raw: AnyBrand): ExploreBrand {
   };
 }
 
-// ------------------------------------------------------------------
-// [메인 컴포넌트]
-// ------------------------------------------------------------------
 export default function FranchiseExplorePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,22 +83,14 @@ export default function FranchiseExplorePage() {
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [visibleLimit, setVisibleLimit] = useState<number>(INITIAL_LIMIT);
 
-  // [카테고리 목록]
   const MIDDLE_CATS = [
-    { key: '한식', label: '🍚 한식' }, 
-    { key: '치킨', label: '🍗 치킨' }, 
-    { key: '커피', label: '☕ 카페' }, 
-    { key: '분식', label: '🍢 분식' },
-    { key: '주류', label: '🍺 호프/주점' },
-    { key: '패스트푸드', label: '🍔 버거/피자' }, 
-    { key: '일식', label: '🍣 일식' }, 
-    { key: '중식', label: '🥟 중식' },
-    { key: '제과제빵', label: '🍞 베이커리' }, 
-    { key: '편의점', label: '🏪 편의점/마트' },
-    { key: '화장품', label: '💄 화장품' },
-    { key: '이미용', label: '💇‍♀️ 미용/뷰티' },
-    { key: '의류', label: '👕 의류/패션' },
-    { key: '도소매', label: '🛒 도소매/유통' },
+    { key: '한식', label: '🍚 한식' }, { key: '치킨', label: '🍗 치킨' }, 
+    { key: '커피', label: '☕ 카페' }, { key: '분식', label: '🍢 분식' },
+    { key: '주류', label: '🍺 호프/주점' }, { key: '패스트푸드', label: '🍔 버거/피자' }, 
+    { key: '일식', label: '🍣 일식' }, { key: '중식', label: '🥟 중식' },
+    { key: '제과제빵', label: '🍞 베이커리' }, { key: '편의점', label: '🏪 편의점/마트' },
+    { key: '화장품', label: '💄 화장품' }, { key: '이미용', label: '💇‍♀️ 미용/뷰티' },
+    { key: '의류', label: '👕 의류/패션' }, { key: '도소매', label: '🛒 도소매/유통' },
     { key: '서비스', label: '🛠 서비스/기타' },
   ];
 
@@ -143,39 +100,31 @@ export default function FranchiseExplorePage() {
     if(cats.length) setSelectedCats(cats);
   }, [searchParams]);
 
-  // [데이터 로드 및 필터링 로직]
+  // [데이터 로드]
   const filteredBrands = useMemo(() => {
     let rawList = (BRANDS as AnyBrand[]) || [];
 
-    // ★ [데이터 뻥튀기 로직 추가] ★ 
-    // 데이터가 적으면 더보기 버튼이 안 나오므로, 강제로 늘려줍니다.
+    // [데이터 뻥튀기] 더보기 버튼 테스트용
     if (rawList.length > 0) {
       const expandedList = [];
-      // 20배로 늘리기 (충분한 스크롤 확보)
       for (let i = 0; i < 20; i++) {
         rawList.forEach((original) => {
           expandedList.push({
             ...original,
-            id: `${original.id}-${i}`, // 고유 ID 생성
+            id: `${original.id}-${i}`, 
           });
         });
       }
       rawList = expandedList;
     }
 
-    // 1. 뷰모델 변환
     let list = rawList.map(toExploreBrand);
     
-    // 2. 검색어 필터
     if (query) {
       const q = query.toLowerCase();
-      list = list.filter(b => 
-        b.name.toLowerCase().includes(q) || 
-        b.primaryCategoryLabel.toLowerCase().includes(q)
-      );
+      list = list.filter(b => b.name.toLowerCase().includes(q) || b.primaryCategoryLabel.toLowerCase().includes(q));
     }
 
-    // 3. 카테고리 필터
     if (selectedCats.length > 0) {
       list = list.filter(b => selectedCats.some(c => b.primaryCategoryLabel.includes(c)));
     }
@@ -183,7 +132,7 @@ export default function FranchiseExplorePage() {
     return list;
   }, [query, selectedCats]);
 
-  // [화면에 보여줄 개수만큼 자르기]
+  // [핵심] 화면에 보여줄 데이터 자르기 (이게 없어서 에러 났었음!)
   const visibleBrands = filteredBrands.slice(0, visibleLimit);
 
   const toggleCategory = (key: string) => {
@@ -202,7 +151,6 @@ export default function FranchiseExplorePage() {
     <main className="min-h-screen bg-slate-50 pb-20">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
         
-        {/* 상단 헤더 */}
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-slate-900">프랜차이즈 찾기</h1>
@@ -210,7 +158,6 @@ export default function FranchiseExplorePage() {
           </div>
         </header>
 
-        {/* 배너 영역 */}
         <section className="mb-8 rounded-2xl overflow-hidden shadow-lg border border-slate-700/10">
           <Swiper modules={[Autoplay, Pagination]} autoplay={{ delay: 4000 }} loop={true} className="h-40 md:h-56">
             {PROMO_BANNERS.map((banner) => (
@@ -228,7 +175,6 @@ export default function FranchiseExplorePage() {
           </Swiper>
         </section>
 
-        {/* 검색바 */}
         <div className="relative mb-6">
           <input 
             type="text" 
@@ -240,7 +186,6 @@ export default function FranchiseExplorePage() {
           <MagnifyingGlassIcon className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
         </div>
 
-        {/* 카테고리 필터 */}
         <div className="relative group mb-8">
            <button onClick={() => scrollMenu('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 shadow rounded-full flex items-center justify-center text-slate-600 md:hidden"><ChevronLeftIcon className="w-4 h-4"/></button>
            <div ref={scrollContainerRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-1 pb-1">
@@ -259,7 +204,6 @@ export default function FranchiseExplorePage() {
            <button onClick={() => scrollMenu('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 shadow rounded-full flex items-center justify-center text-slate-600 md:hidden"><ChevronRightIcon className="w-4 h-4"/></button>
         </div>
 
-        {/* 브랜드 리스트 */}
         <section>
            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {visibleBrands.map((b) => (
@@ -296,7 +240,6 @@ export default function FranchiseExplorePage() {
               ))}
            </div>
            
-           {/* 결과 없음 */}
            {visibleBrands.length === 0 && (
              <div className="py-20 text-center">
                <p className="text-slate-500 font-bold">검색 결과가 없습니다.</p>
@@ -304,7 +247,6 @@ export default function FranchiseExplorePage() {
              </div>
            )}
 
-           {/* [수정됨] 더보기 버튼 (조건: 현재 보여주는 개수보다 전체 데이터가 많을 때) */}
            {visibleBrands.length < filteredBrands.length && (
              <div className="mt-10 text-center pb-10">
                <button 
@@ -317,7 +259,6 @@ export default function FranchiseExplorePage() {
              </div>
            )}
         </section>
-
       </div>
     </main>
   );

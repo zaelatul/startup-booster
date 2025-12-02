@@ -448,3 +448,4 @@ const SummarySection = () => (
         <p className="text-sm text-slate-500 max-w-sm">모든 데이터가 수집되면 상권의 활성도, 성장성, 안정성을 종합적으로 평가하여 등급(S~D)을 산출합니다.</p>
     </div>
 );
+export default MarketAnalysis;
