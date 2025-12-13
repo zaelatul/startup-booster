@@ -1,21 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
-// [수정] 환경변수가 없어도 빌드가 터지지 않게 '임시 값'을 넣어주는 안전장치 추가
+// [중요] '!' 느낌표를 지우고 '||' 연산자로 임시 값을 넣어줘야 빌드가 안 터집니다.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
-// 클라이언트 타입 정의
-type Supa = ReturnType<typeof createClient>;
-let _client: Supa | null = null;
+// 클라이언트 타입 정의 (필요시 사용, 없으면 any로 대체 가능)
+// type Supa = ReturnType<typeof createClient>; 
 
-/** 서버/클라이언트 어디서든 싱글톤으로 재사용 */
-export function supabase(): Supa {
-  if (!_client) {
-    _client = createClient(supabaseUrl, supabaseKey, { 
-      auth: { 
-        persistSession: false // 불필요한 세션 저장 방지
-      } 
+// 싱글톤 인스턴스
+let client: any = null;
+
+export function supabase() {
+  if (!client) {
+    client = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false // 서버 사이드 렌더링 시 세션 충돌 방지
+      }
     });
   }
-  return _client;
+  return client;
 }
+
+// 간단하게 바로 쓸 수 있는 객체도 export (기존 코드 호환용)
+export const supabaseClient = createClient(supabaseUrl, supabaseKey);
