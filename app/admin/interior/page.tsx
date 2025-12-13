@@ -1,389 +1,349 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { TrashIcon, PencilIcon, PlusIcon, PhotoIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import { 
+  XMarkIcon, ChevronRightIcon, CurrencyDollarIcon, 
+  WrenchScrewdriverIcon, ShieldCheckIcon, ShoppingBagIcon, 
+  PlusIcon, CalculatorIcon, InformationCircleIcon, PencilSquareIcon 
+} from '@heroicons/react/24/solid';
+import { calculateCost, fmtKRW, PRO_LABOR_COST } from '@/lib/interior-logic';
 
-// [중요] 엉아의 진짜 키를 여기에 직접 따옴표 안에 붙여넣으세요!
-// 예: const supabaseUrl = 'https://abcdefg.supabase.co';
-const supabaseUrl = 'https://epnkmxtkbxkemmweswij.supabase.co'; 
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbmtteHRrYnhrZW1td2Vzd2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMTk2OTUsImV4cCI6MjA3Nzg5NTY5NX0.f_fhGUmzEBxKoFPAdU1OFr7sEhXGLMG4C-uY2G3BsJs';
+// Swiper
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// [안전장치] Supabase 클라이언트
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://epnkmxtkbxkemmweswij.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbmtteHRrYnhrZW1td2Vzd2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMTk2OTUsImV4cCI6MjA3Nzg5NTY5NX0.f_fhGUmzEBxKoFPAdU1OFr7sEhXGLMG4C-uY2G3BsJs'
+);
 
-// --- 타입 정의 ---
-type InteriorProduct = {
-  id: string;
-  category: string;
-  name: string;
-  tag: string;
-  tile_width: number;
-  tile_height: number;
-  price_per_piece: number;
-  image_url: string;
-  spec_description: string;
-};
+const PROMO_BANNERS = [
+  { id: 1, title: '벽면 셀프 시공만으로 분위기 확 바꾸기', description: '소프트스톤, 데코 패널 등 벽면만 먼저 손보는 셀프 시공', tag: '소프트스톤 · 데코 패널', imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?q=80&w=1200' },
+  { id: 2, title: '데코타일로 바닥 셀프 시공', description: '기존 바닥 철거 없이 올려 시공하는 방식으로 비용 절감', tag: '데코타일 셀프 시공', imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1200' },
+];
 
-type InteriorCase = {
-  id: string;
-  title: string;
-  before_image: string;
-  after_image: string;
-  description: string;
-  cost_saved: number;
-};
+// [1] 제품 상세 모달
+function ProductDetailModal({ product, onClose }: { product: any; onClose: () => void; }) {
+  if (!product) return null;
 
-type Consultation = {
-  id: string;
-  created_at: string;
-  customer_name: string;
-  contact: string;
-  email: string;
-  width_m: number;
-  length_m: number;
-  zone_count: number;
-  status: string;
-};
-
-export default function AdminInteriorPage() {
-  const [activeTab, setActiveTab] = useState<'product' | 'case' | 'consultation'>('product');
+  // [수정] 숫자 변환 안전장치
+  const price = Number(product.price_per_piece || 0);
+  const width = Number(product.tile_width || 0);
+  const height = Number(product.tile_height || 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-900">셀프 인테리어 통합 관리</h2>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-white/80 p-2 text-slate-800 shadow-md hover:bg-white transition-all">
+          <XMarkIcon className="h-6 w-6" />
+        </button>
 
-      {/* 탭 메뉴 */}
-      <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl w-fit">
-        <TabButton label="📦 자재 관리" active={activeTab === 'product'} onClick={() => setActiveTab('product')} />
-        <TabButton label="✨ 시공 사례" active={activeTab === 'case'} onClick={() => setActiveTab('case')} />
-        <TabButton label="📞 상담 신청 내역" active={activeTab === 'consultation'} onClick={() => setActiveTab('consultation')} />
-      </div>
+        <div className="relative h-64 md:h-auto md:w-1/2 bg-slate-100">
+          <img src={product.image_url || 'https://via.placeholder.com/600'} alt={product.name} className="h-full w-full object-cover" />
+        </div>
 
-      {/* 탭별 컨텐츠 */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-h-[500px]">
-        {activeTab === 'product' && <ProductManager />}
-        {activeTab === 'case' && <CaseManager />}
-        {activeTab === 'consultation' && <ConsultationManager />}
+        <div className="flex-1 p-6 md:p-8 flex flex-col overflow-y-auto bg-white">
+          <div className="mb-4">
+            <span className="inline-block rounded-md bg-indigo-50 px-2 py-1 text-[11px] font-bold text-indigo-600 mb-2">{product.tag}</span>
+            <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-1">{product.name}</h3>
+            <p className="text-xs text-slate-400">Code: {product.id.slice(0, 8).toUpperCase()}</p>
+          </div>
+          
+          <div className="flex-1 space-y-6">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <h4 className="text-xs font-bold text-slate-500 mb-2">📌 제품 스펙</h4>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {product.spec_description || `${width}x${height}mm / 1장당 ${price.toLocaleString()}원`}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 mb-2">💡 장당 가격</h4>
+              <p className="text-lg font-bold text-indigo-600">{price.toLocaleString()}원 / 1장</p>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-slate-100">
+             <p className="text-xs text-slate-500 mb-4 text-center">* 정확한 견적은 아래 계산기를 이용해주세요.</p>
+             <button className="w-full py-4 rounded-xl bg-[#1E293B] text-sm font-bold text-white shadow-lg hover:bg-slate-800 flex items-center justify-center gap-2">
+                <ShoppingBagIcon className="w-4 h-4" /> 구매 문의하기
+             </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function TabButton({ label, active, onClick }: any) {
+// [2] 시공 사례 모달
+function CaseDetailModal({ caseItem, onClose }: { caseItem: any; onClose: () => void; }) {
+  if (!caseItem) return null;
   return (
-    <button
-      onClick={onClick}
-      className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-        active ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-      }`}
-    >
-      {label}
-    </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-black/50 p-2 text-white shadow-md hover:bg-black/70">
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+        <div className="relative h-64 md:h-auto md:w-3/5 bg-slate-900">
+          <img src={caseItem.after_image} alt={caseItem.title} className="h-full w-full object-cover opacity-90" />
+          <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-8">
+             <h3 className="text-2xl font-bold text-white mb-1">{caseItem.title}</h3>
+             <p className="text-indigo-300 text-sm font-bold">{Number(caseItem.cost_saved).toLocaleString()}원 절감 사례</p>
+          </div>
+        </div>
+        <div className="flex-1 p-8 bg-white flex flex-col overflow-y-auto">
+           <div className="mb-6">
+              <span className="text-xs font-bold text-slate-400 uppercase mb-2 block">Before Construction</span>
+              <div className="h-40 rounded-xl overflow-hidden bg-slate-100 mb-4">
+                 {caseItem.before_image ? (
+                    <img src={caseItem.before_image} alt="Before" className="w-full h-full object-cover" />
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Before 사진 없음</div>
+                 )}
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{caseItem.description}</p>
+           </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
-// --------------------------------------------------------------------------
-// 1. 자재 관리 컴포넌트
-// --------------------------------------------------------------------------
-function ProductManager() {
-  const [list, setList] = useState<InteriorProduct[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<any>({});
-  const [uploading, setUploading] = useState(false);
+// [3] 메인 페이지
+export default function InteriorPage() {
+  const [activeTab, setActiveTab] = useState<'wall' | 'floor'>('wall');
+  const [products, setProducts] = useState<any[]>([]);
+  const [cases, setCases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [productLimit, setProductLimit] = useState(6);
+  const [caseLimit, setCaseLimit] = useState(4);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
 
-  const fetchList = async () => {
-    const { data } = await supabase.from('interior_products').select('*').order('created_at', { ascending: false });
-    if (data) setList(data);
-  };
+  // 계산기 상태
+  const [widthM, setWidthM] = useState<string>('3');
+  const [lengthM, setLengthM] = useState<string>('4');
+  const [zoneCount, setZoneCount] = useState<string>('1');
 
-  useEffect(() => { fetchList(); }, []);
+  const [manualSpec, setManualSpec] = useState({
+    tile_width: 600,
+    tile_height: 600,
+    price_per_piece: 5000
+  });
 
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    const fileName = `interior/product_${Date.now()}_${file.name}`;
-    
-    setUploading(true);
-    // [수정] 버킷 이름을 'uploads'로 통일 (SQL과 일치)
-    const { error } = await supabase.storage.from('uploads').upload(fileName, file);
-    
-    if (error) { 
-        alert('업로드 실패: ' + error.message); 
-        setUploading(false); 
-        return; 
+  // [수정] 직접 입력 모드 스위치
+  const [isManualMode, setIsManualMode] = useState(false);
+
+  useEffect(() => {
+    // [중요] 환경변수 체크: 없으면 실행 안 함
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        setLoading(false);
+        return;
     }
     
-    const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
-    setForm({ ...form, image_url: data.publicUrl });
-    setUploading(false);
-  };
+    const fetchData = async () => {
+      setLoading(true);
+      const { data: prodData } = await supabase
+        .from('interior_products')
+        .select('*')
+        .eq('category', activeTab)
+        .order('created_at', { ascending: false });
+      if (prodData) setProducts(prodData);
 
-  const handleSave = async () => {
-    const payload = { 
-       ...form, 
-       tile_width: Number(form.tile_width),
-       tile_height: Number(form.tile_height),
-       price_per_piece: Number(form.price_per_piece)
+      const { data: caseData } = await supabase
+        .from('interior_cases')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (caseData) setCases(caseData);
+      setLoading(false);
     };
-    const { error } = form.id 
-      ? await supabase.from('interior_products').update(payload).eq('id', form.id)
-      : await supabase.from('interior_products').insert([payload]);
-    if (!error) { setIsEditing(false); setForm({}); fetchList(); }
-    else { alert('오류: ' + error.message); }
-  };
+    fetchData();
+    setProductLimit(6);
+    setSelectedProduct(null);
+    setIsManualMode(false);
+  }, [activeTab]);
 
-  const handleDelete = async (id: string) => {
-    if (confirm('삭제하시겠습니까?')) {
-      await supabase.from('interior_products').delete().eq('id', id);
-      fetchList();
-    }
-  };
+  // [핵심] 계산 로직
+  let targetProduct;
+  if (isManualMode) {
+    targetProduct = { ...manualSpec, name: '직접 입력 자재' };
+  } else {
+    targetProduct = selectedProduct || (products.length > 0 ? products[0] : { tile_width: 600, tile_height: 600, price_per_piece: 5000 });
+  }
 
-  if (isEditing) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-4">
-        <h3 className="font-bold text-lg mb-4">{form.id ? '자재 수정' : '새 자재 등록'}</h3>
-        <div className="flex gap-2">
-           <select className="border p-2 rounded-lg text-sm w-32" value={form.category || 'wall'} onChange={e => setForm({...form, category: e.target.value})}>
-              <option value="wall">벽면</option>
-              <option value="floor">바닥</option>
-           </select>
-           <input className="border p-2 rounded-lg flex-1 text-sm" placeholder="자재명" value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} />
-        </div>
-        <input className="border p-2 rounded-lg w-full text-sm" placeholder="태그 (#카페 #모던)" value={form.tag || ''} onChange={e => setForm({...form, tag: e.target.value})} />
+  const { materialCost, proCost, saveCost, pieceCount, isValid, spec } = calculateCost(
+    widthM, lengthM, zoneCount, activeTab, targetProduct
+  );
+
+  const visibleProducts = products.slice(0, productLimit);
+  const visibleCases = cases.slice(0, caseLimit);
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-10">
         
-        <div className="grid grid-cols-2 gap-4">
-           <div>
-              <label className="text-xs font-bold text-slate-500 block mb-1">규격 (mm)</label>
-              <div className="flex gap-2">
-                 <input type="number" className="border p-2 rounded-lg w-full text-sm" placeholder="가로" value={form.tile_width || ''} onChange={e => setForm({...form, tile_width: e.target.value})} />
-                 <span className="pt-2">x</span>
-                 <input type="number" className="border p-2 rounded-lg w-full text-sm" placeholder="세로" value={form.tile_height || ''} onChange={e => setForm({...form, tile_height: e.target.value})} />
+        {/* 배너 */}
+        <section className="relative overflow-hidden rounded-3xl shadow-xl border border-slate-800/10">
+          <Swiper modules={[Autoplay, Pagination]} autoplay={{ delay: 5000 }} loop={true} className="h-64 md:h-80">
+            {PROMO_BANNERS.map((banner) => (
+              <SwiperSlide key={banner.id}>
+                <div className="relative h-full w-full">
+                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${banner.imageUrl})` }} />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] via-[#1E293B]/80 to-transparent" />
+                  <div className="relative z-10 flex h-full flex-col justify-center p-8 md:p-12 max-w-2xl">
+                    <span className="inline-block w-fit mb-3 rounded-md bg-indigo-600 px-3 py-1 text-[10px] font-bold text-white shadow-sm">{banner.tag}</span>
+                    <h2 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-3">{banner.title}</h2>
+                    <p className="text-sm md:text-base text-slate-300 line-clamp-2">{banner.description}</p>
+                  </div>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </section>
+
+        {/* 탭 및 리스트 */}
+        <section>
+           <div className="flex justify-center mb-8">
+              <div className="bg-white p-1.5 rounded-full shadow-sm border border-slate-200 inline-flex">
+                <button onClick={() => setActiveTab('wall')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'wall' ? 'bg-[#1E293B] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>벽면 (Wall)</button>
+                <button onClick={() => setActiveTab('floor')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'floor' ? 'bg-[#1E293B] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>바닥 (Floor)</button>
               </div>
            </div>
-           <div>
-              <label className="text-xs font-bold text-slate-500 block mb-1">장당 가격 (원)</label>
-              <input type="number" className="border p-2 rounded-lg w-full text-sm" placeholder="예: 4500" value={form.price_per_piece || ''} onChange={e => setForm({...form, price_per_piece: e.target.value})} />
-           </div>
-        </div>
-
-        <textarea className="border p-2 rounded-lg w-full text-sm h-20" placeholder="상세 스펙" value={form.spec_description || ''} onChange={e => setForm({...form, spec_description: e.target.value})} />
-        
-        <div className="flex items-center gap-3">
-           {form.image_url && <img src={form.image_url} alt="preview" className="w-16 h-16 rounded-lg object-cover bg-slate-100" />}
-           <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800">
-              {uploading ? '업로드 중...' : '이미지 선택'}
-              <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-           </label>
-        </div>
-
-        <div className="flex gap-2 pt-4">
-           <button onClick={handleSave} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">저장</button>
-           <button onClick={() => setIsEditing(false)} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold">취소</button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex justify-end mb-4">
-         <button onClick={() => { setIsEditing(true); setForm({ category: 'wall' }); }} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm"><PlusIcon className="w-4 h-4"/> 자재 등록</button>
-      </div>
-      <div className="space-y-3">
-         {list.map(item => (
-            <div key={item.id} className="flex items-center gap-4 p-4 border border-slate-100 rounded-xl hover:bg-slate-50">
-               <div className="w-12 h-12 bg-slate-200 rounded-lg overflow-hidden">
-                  {item.image_url && <img src={item.image_url} className="w-full h-full object-cover" />}
-               </div>
-               <div className="flex-1">
-                  <p className="font-bold text-slate-900 text-sm">{item.name}</p>
-                  <p className="text-xs text-slate-500">{item.tile_width}x{item.tile_height}mm / {Number(item.price_per_piece).toLocaleString()}원</p>
-               </div>
-               <button onClick={() => { setForm(item); setIsEditing(true); }} className="p-2 text-slate-400 hover:text-indigo-600"><PencilIcon className="w-4 h-4"/></button>
-               <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4"/></button>
-            </div>
-         ))}
-      </div>
-    </div>
-  );
-}
-
-// --------------------------------------------------------------------------
-// 2. 시공 사례 관리 컴포넌트
-// --------------------------------------------------------------------------
-function CaseManager() {
-  const [list, setList] = useState<InteriorCase[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<any>({});
-  const [uploading, setUploading] = useState(false);
-
-  const fetchList = async () => {
-    const { data } = await supabase.from('interior_cases').select('*').order('created_at', { ascending: false });
-    if (data) setList(data);
-  };
-
-  useEffect(() => { fetchList(); }, []);
-
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, field: 'before_image' | 'after_image') => {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    const fileName = `interior/case_${field}_${Date.now()}`;
-    
-    setUploading(true);
-    const { error } = await supabase.storage.from('uploads').upload(fileName, file);
-    
-    if (error) { 
-        alert('업로드 실패: ' + error.message); 
-        setUploading(false); 
-        return; 
-    }
-
-    const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
-    setForm({ ...form, [field]: data.publicUrl });
-    setUploading(false);
-  };
-
-  const handleSave = async () => {
-    const payload = { ...form, cost_saved: Number(form.cost_saved) };
-    const { error } = form.id 
-      ? await supabase.from('interior_cases').update(payload).eq('id', form.id)
-      : await supabase.from('interior_cases').insert([payload]);
-    if (!error) { setIsEditing(false); setForm({}); fetchList(); }
-    else { alert('오류: ' + error.message); }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('삭제하시겠습니까?')) {
-      await supabase.from('interior_cases').delete().eq('id', id);
-      fetchList();
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-4">
-         <h3 className="font-bold text-lg mb-4">{form.id ? '시공 사례 수정' : '새 사례 등록'}</h3>
-         <input className="border p-2 rounded-lg w-full text-sm" placeholder="제목 (예: 30평 카페 바닥 시공)" value={form.title || ''} onChange={e => setForm({...form, title: e.target.value})} />
-         <input type="number" className="border p-2 rounded-lg w-full text-sm" placeholder="절감액 (숫자만, 예: 1500000)" value={form.cost_saved || ''} onChange={e => setForm({...form, cost_saved: e.target.value})} />
-         <textarea className="border p-2 rounded-lg w-full text-sm h-24" placeholder="시공 스토리 및 설명" value={form.description || ''} onChange={e => setForm({...form, description: e.target.value})} />
-         
-         <div className="grid grid-cols-2 gap-4">
-            <div>
-               <p className="text-xs font-bold mb-2 text-slate-500">Before 사진</p>
-               <div className="flex items-center gap-2">
-                  {form.before_image && <img src={form.before_image} className="w-12 h-12 rounded object-cover bg-slate-100" />}
-                  <label className="cursor-pointer text-xs bg-slate-200 px-3 py-2 rounded hover:bg-slate-300">
-                     업로드 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'before_image')} />
-                  </label>
-               </div>
-            </div>
-            <div>
-               <p className="text-xs font-bold mb-2 text-slate-500">After 사진 (필수)</p>
-               <div className="flex items-center gap-2">
-                  {form.after_image && <img src={form.after_image} className="w-12 h-12 rounded object-cover bg-slate-100" />}
-                  <label className="cursor-pointer text-xs bg-slate-900 text-white px-3 py-2 rounded hover:bg-slate-800">
-                     업로드 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'after_image')} />
-                  </label>
-               </div>
-            </div>
-         </div>
-
-         <div className="flex gap-2 pt-4">
-            <button onClick={handleSave} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">저장</button>
-            <button onClick={() => setIsEditing(false)} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold">취소</button>
-         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-       <div className="flex justify-end mb-4">
-          <button onClick={() => { setIsEditing(true); setForm({}); }} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm"><PlusIcon className="w-4 h-4"/> 사례 등록</button>
-       </div>
-       <div className="grid grid-cols-2 gap-4">
-          {list.map(item => (
-             <div key={item.id} className="border border-slate-200 rounded-xl p-4 relative group">
-                <div className="h-32 bg-slate-100 rounded-lg overflow-hidden mb-3">
-                   <img src={item.after_image} className="w-full h-full object-cover" />
-                </div>
-                <p className="font-bold text-sm text-slate-900 truncate">{item.title}</p>
-                <p className="text-xs text-indigo-600 font-bold">{Number(item.cost_saved).toLocaleString()}원 절감</p>
-                <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
-                   <button onClick={() => { setForm(item); setIsEditing(true); }} className="p-1.5 bg-white shadow text-slate-600 rounded"><PencilIcon className="w-4 h-4"/></button>
-                   <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-white shadow text-red-500 rounded"><TrashIcon className="w-4 h-4"/></button>
-                </div>
+           {loading ? <div className="py-20 text-center text-slate-400">데이터를 불러오는 중...</div> : visibleProducts.length === 0 ? (
+              <div className="py-20 text-center text-slate-400 bg-white rounded-2xl border border-slate-100">등록된 자재가 없습니다.</div>
+           ) : (
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                {visibleProducts.map((item) => (
+                   <div 
+                     key={item.id} 
+                     onClick={() => {
+                        setSelectedProduct(item);
+                        setIsManualMode(false);
+                        document.getElementById('calculator-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                     }} 
+                     className={`group cursor-pointer bg-white rounded-2xl overflow-hidden shadow-sm border transition-all hover:-translate-y-1 ${selectedProduct?.id === item.id && !isManualMode ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-100 hover:border-indigo-100'}`}
+                   >
+                      <div className="relative h-40 bg-slate-200 overflow-hidden">
+                         <img src={item.image_url || 'https://via.placeholder.com/400'} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      </div>
+                      <div className="p-4">
+                         <p className="text-[10px] text-indigo-600 font-bold mb-1">{item.tag}</p>
+                         <h3 className="text-sm font-bold text-slate-900 line-clamp-1">{item.name}</h3>
+                         <div className="mt-2 flex items-center justify-between">
+                            <span className="text-xs text-slate-400">{item.tile_width}x{item.tile_height}mm</span>
+                            <span className="text-sm font-extrabold text-slate-900">{Number(item.price_per_piece).toLocaleString()}<span className="text-xs font-normal">원/장</span></span>
+                         </div>
+                      </div>
+                   </div>
+                ))}
              </div>
-          ))}
-       </div>
-    </div>
-  );
-}
+           )}
+           {visibleProducts.length < products.length && (
+             <div className="mt-8 text-center">
+                <button onClick={() => setProductLimit(prev => prev + 6)} className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition-all"><PlusIcon className="w-3 h-3" /> 더 보기</button>
+             </div>
+           )}
+        </section>
 
-// --------------------------------------------------------------------------
-// 3. 상담 내역 관리 컴포넌트
-// --------------------------------------------------------------------------
-function ConsultationManager() {
-  const [list, setList] = useState<Consultation[]>([]);
+        {/* 견적 계산기 */}
+        <section id="calculator-section" className="rounded-3xl bg-[#1E293B] p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+           <div className="relative z-10 flex flex-col lg:flex-row gap-10 items-start">
+              <div className="flex-1 w-full">
+                 <div className="flex items-center gap-2 mb-2">
+                    <CalculatorIcon className="w-6 h-6 text-yellow-400" />
+                    <h2 className="text-xl font-bold">셀프 견적 계산기</h2>
+                 </div>
+                 
+                 <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10 flex items-start gap-3">
+                    <PencilSquareIcon className="w-5 h-5 text-indigo-400 mt-1 shrink-0" />
+                    <div>
+                       {isManualMode ? (
+                          <>
+                             <p className="text-sm text-slate-200 mb-1 font-bold">내가 알아본 자재의 규격과 가격을 직접 입력해서 계산합니다.</p>
+                             <p className="text-xs text-slate-500 font-medium">(자재 규격 및 단가 확인 후 입력하세요)</p>
+                          </>
+                       ) : (
+                          <>
+                             <p className="text-sm text-slate-200 mb-1">위 리스트에서 <strong>자재를 선택</strong>하면 해당 스펙으로 자동 계산됩니다.</p>
+                             <p className="text-xs text-slate-500 font-medium">{selectedProduct ? `선택됨: ${selectedProduct.name}` : '(선택된 자재 없음 -> 기본값 적용)'}</p>
+                          </>
+                       )}
+                    </div>
+                 </div>
 
-  const fetchList = async () => {
-    const { data } = await supabase.from('interior_consultations').select('*').order('created_at', { ascending: false });
-    if (data) setList(data);
-  };
+                 <div className="space-y-6">
+                    <div>
+                       <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 1. 시공할 공간 크기</p>
+                       <div className="grid grid-cols-3 gap-3">
+                          <div><label className="text-xs text-slate-400 mb-1 block">가로 (m)</label><input type="number" value={widthM} onChange={(e) => setWidthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                          <div><label className="text-xs text-slate-400 mb-1 block">세로 (m)</label><input type="number" value={lengthM} onChange={(e) => setLengthM(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                          <div><label className="text-xs text-slate-400 mb-1 block">구역 수</label><input type="number" value={zoneCount} onChange={(e) => setZoneCount(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                       </div>
+                    </div>
+                    {/* 수동 모드 스위치 UI는 여기에 배치 */}
+                    <div className="flex justify-end">
+                        <div className="flex bg-slate-800 rounded-lg p-1">
+                            <button onClick={() => setIsManualMode(false)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>선택 자재</button>
+                            <button onClick={() => setIsManualMode(true)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>직접 입력</button>
+                        </div>
+                    </div>
+                    {isManualMode && (
+                       <div className="animate-fadeIn">
+                          <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 2. 자재 정보 입력</p>
+                          <div className="grid grid-cols-3 gap-3">
+                             <div><label className="text-xs text-slate-400 mb-1 block">자재 가로 (mm)</label><input type="number" value={manualSpec.tile_width} onChange={(e) => setManualSpec({...manualSpec, tile_width: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                             <div><label className="text-xs text-slate-400 mb-1 block">자재 세로 (mm)</label><input type="number" value={manualSpec.tile_height} onChange={(e) => setManualSpec({...manualSpec, tile_height: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                             <div><label className="text-xs text-slate-400 mb-1 block">장당 가격 (원)</label><input type="number" value={manualSpec.price_per_piece} onChange={(e) => setManualSpec({...manualSpec, price_per_piece: Number(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+              </div>
+              <div className="w-full lg:w-96 bg-white rounded-2xl p-6 text-slate-900 shadow-lg shrink-0">
+                 {isValid ? (
+                    <>
+                       <div className="flex justify-between items-center mb-2"><span className="text-sm font-bold text-slate-500">예상 자재비</span><span className="text-2xl font-extrabold text-slate-900">{fmtKRW(materialCost)}</span></div>
+                       <div className="mb-6 text-right">
+                          <p className="text-xs text-slate-400 mb-1">{spec?.tW}x{spec?.tH}mm ({fmtKRW(spec?.price)}/장) 기준</p>
+                          <span className="inline-block bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded font-bold">총 {pieceCount}장 필요 (여유 10%)</span>
+                       </div>
+                       <div className="space-y-3 pt-4 border-t border-slate-100">
+                          <div className="flex justify-between text-xs"><span className="text-slate-500">업체 시공 시 예상가</span><span className="text-slate-400 line-through">{fmtKRW(proCost)}</span></div>
+                          <div className="flex justify-between items-center bg-indigo-50 p-3 rounded-lg"><span className="text-xs font-bold text-indigo-700">💰 예상 절감액</span><span className="text-sm font-extrabold text-indigo-600">-{fmtKRW(saveCost)}</span></div>
+                          <div className="flex gap-2 items-start text-[10px] text-slate-400 bg-slate-50 p-2 rounded border border-slate-100"><InformationCircleIcon className="w-3 h-3 shrink-0 mt-0.5" /><span>1인당 하루 시공 인건비({fmtKRW(PRO_LABOR_COST)}) 절감 효과가 포함된 금액입니다.</span></div>
+                       </div>
+                       <button className="w-full mt-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-md active:scale-95">이 견적으로 자재 담기</button>
+                    </>
+                 ) : (<div className="text-center py-12 text-slate-400 text-sm flex flex-col items-center"><CalculatorIcon className="w-8 h-8 mb-2 text-slate-300" />치수를 입력하면<br/>자동으로 계산됩니다.</div>)}
+              </div>
+           </div>
+        </section>
 
-  useEffect(() => { fetchList(); }, []);
+        {/* 시공 사례 */}
+        <section>
+           <h2 className="text-xl font-bold text-slate-900 mb-6">📸 생생한 시공 후기</h2>
+           {cases.length === 0 ? <div className="py-10 text-center text-slate-400">등록된 후기가 없습니다.</div> : (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {visibleCases.map((c) => (
+                   <div key={c.id} onClick={() => setSelectedCase(c)} className="group relative h-64 rounded-2xl overflow-hidden cursor-pointer shadow-sm">
+                      <img src={c.after_image || 'https://via.placeholder.com/600'} alt={c.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                      <div className="absolute bottom-6 left-6 right-6"><span className="inline-block px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-bold rounded mb-2">Before & After</span><h3 className="text-lg font-bold text-white">{c.title}</h3></div>
+                   </div>
+                ))}
+             </div>
+           )}
+        </section>
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    await supabase.from('interior_consultations').update({ status: newStatus }).eq('id', id);
-    fetchList();
-  };
+      </div>
 
-  return (
-    <div>
-       <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-             <thead className="bg-slate-50 text-slate-500 font-bold">
-                <tr>
-                   <th className="p-3">날짜</th>
-                   <th className="p-3">고객명/연락처</th>
-                   <th className="p-3">견적 내용</th>
-                   <th className="p-3">상태</th>
-                </tr>
-             </thead>
-             <tbody className="divide-y divide-slate-100">
-                {list.length === 0 ? (
-                   <tr><td colSpan={4} className="p-8 text-center text-slate-400">아직 상담 신청이 없습니다.</td></tr>
-                ) : (
-                   list.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-50">
-                         <td className="p-3 text-xs text-slate-400">{new Date(item.created_at).toLocaleDateString()}</td>
-                         <td className="p-3">
-                            <p className="font-bold text-slate-900">{item.customer_name}</p>
-                            <p className="text-xs text-slate-500">{item.contact}</p>
-                         </td>
-                         <td className="p-3">
-                            <p className="text-xs text-slate-700">가로{item.width_m}m x 세로{item.length_m}m ({item.zone_count}구역)</p>
-                         </td>
-                         <td className="p-3">
-                            {item.status === 'pending' ? (
-                               <button onClick={() => handleStatusChange(item.id, 'contacted')} className="flex items-center gap-1 px-3 py-1 bg-rose-100 text-rose-600 rounded-full text-xs font-bold hover:bg-rose-200">
-                                  <XCircleIcon className="w-4 h-4" /> 대기중
-                               </button>
-                            ) : (
-                               <span className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full text-xs font-bold">
-                                  <CheckCircleIcon className="w-4 h-4" /> 상담완료
-                               </span>
-                            )}
-                         </td>
-                      </tr>
-                   ))
-                )}
-             </tbody>
-          </table>
-       </div>
+      {selectedProduct && <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />}
+      {selectedCase && <CaseDetailModal caseItem={selectedCase} onClose={() => setSelectedCase(null)} />}
     </div>
   );
 }

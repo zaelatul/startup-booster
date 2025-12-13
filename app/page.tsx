@@ -15,14 +15,15 @@ import {
   WrenchScrewdriverIcon,
   FireIcon,
   EnvelopeIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  StarIcon // 성공사례 아이콘용 추가
 } from '@heroicons/react/24/solid';
 
 // 데이터 임포트
 import { POPULAR_FRANCHISES } from '@/lib/reco';
 import { CASES } from '@/lib/cases';
 
-// [핵심 수정] Supabase 설정 (배포 에러 방지용 안전장치)
+// Supabase 설정
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -65,7 +66,6 @@ export default function HomePage() {
 
     setIsSubmitting(true);
     
-    // [추가] 실제 환경변수가 있을 때만 DB 저장 시도
     if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
       const { error } = await supabase
         .from('common_inquiries')
@@ -78,7 +78,6 @@ export default function HomePage() {
       }
     }
 
-    // 성공 처리 (화면상 완료 표시)
     setIsSubmitting(false);
     setIsSubmitted(true);
     setInquiryForm({ category: '프랜차이즈 정보', name: '', contact: '', content: '' });
@@ -88,7 +87,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white pb-20">
       
-      {/* 1. 다크 히어로 섹션 */}
+      {/* 1. 다크 히어로 섹션 (기존 유지) */}
       <section className="w-full bg-[#0F172A] py-10 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 relative z-10">
@@ -115,37 +114,69 @@ export default function HomePage() {
       <main className="w-full flex justify-center">
         <div className="w-full max-w-6xl px-4 py-12 md:px-6 lg:px-8 space-y-20">
           
-          {/* 2. 3대 서비스 카드 */}
+          {/* 2. 핵심 서비스 카드 (3개 -> 2개로 변경 및 디자인 유지) */}
           <section className="-mt-20 relative z-20">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <Link href="/market" className="group block p-6 rounded-2xl bg-[#1E293B] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-600/50">
-                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors"><MapPinIcon className="w-5 h-5 text-blue-400 group-hover:text-white transition-colors" /></div>
-                <h3 className="text-lg font-bold mb-2">상권분석</h3>
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed h-8">철저한 상권분석으로<br/>실패 확률을 줄이세요</p>
-                <span className="text-[10px] font-bold text-blue-400 flex items-center gap-1 group-hover:gap-2 transition-all group-hover:text-white">자세히 보기 <ChevronRightIcon className="w-3 h-3 text-white" /></span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              
+              {/* [1] 프랜차이즈 창업 실제 성공 사례 (메인 강조) */}
+              <Link href="/cases" className="group block p-8 rounded-2xl bg-[#1E293B] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-600/50 relative overflow-hidden">
+                {/* 배경 효과 추가 */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/20 transition-all"></div>
+                
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center mb-5 group-hover:bg-blue-600 transition-colors">
+                            <CheckCircleIcon className="w-6 h-6 text-blue-400 group-hover:text-white transition-colors" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-3 leading-snug">프랜차이즈 창업<br/>실제 성공 사례</h3>
+                        <p className="text-sm text-slate-300 mb-2 leading-relaxed">
+                            데이터로 검증된 사장님들의<br/>진짜 성공 스토리를 확인하세요.
+                        </p>
+                    </div>
+                    <span className="text-xs font-bold text-blue-400 flex items-center gap-1 group-hover:gap-2 transition-all group-hover:text-white mt-4">
+                        성공 비결 보러가기 <ChevronRightIcon className="w-4 h-4" />
+                    </span>
+                </div>
               </Link>
-              <Link href="/franchise/explore" className="group block p-6 rounded-2xl bg-[#1E293B] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-600/50">
-                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center mb-4 group-hover:bg-purple-500 transition-colors"><ChartBarIcon className="w-5 h-5 text-purple-400 group-hover:text-white transition-colors" /></div>
-                <h3 className="text-lg font-bold mb-2">프랜차이즈 분석</h3>
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed h-8">과장 광고에 현혹 되지 마시고<br/>실제 데이터를 확인하세요</p>
-                <span className="text-[10px] font-bold text-purple-400 flex items-center gap-1 group-hover:gap-2 transition-all group-hover:text-white">자세히 보기 <ChevronRightIcon className="w-3 h-3 text-white" /></span>
+
+              {/* [2] 프랜차이즈 분석 (기존 유지) */}
+              <Link href="/franchise/explore" className="group block p-8 rounded-2xl bg-[#1E293B] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-600/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/20 transition-all"></div>
+
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-5 group-hover:bg-purple-500 transition-colors">
+                            <ChartBarIcon className="w-6 h-6 text-purple-400 group-hover:text-white transition-colors" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-3 leading-snug">프랜차이즈<br/>분석</h3>
+                        <p className="text-sm text-slate-300 mb-2 leading-relaxed">
+                            과장 광고에 현혹되지 마시고<br/>객관적인 데이터를 비교하세요.
+                        </p>
+                    </div>
+                    <span className="text-xs font-bold text-purple-400 flex items-center gap-1 group-hover:gap-2 transition-all group-hover:text-white mt-4">
+                        데이터 비교하기 <ChevronRightIcon className="w-4 h-4" />
+                    </span>
+                </div>
               </Link>
-              <Link href="/interior" className="group block p-6 rounded-2xl bg-[#1E293B] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-600/50">
-                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center mb-4 group-hover:bg-orange-500 transition-colors"><WrenchScrewdriverIcon className="w-5 h-5 text-orange-400 group-hover:text-white transition-colors" /></div>
-                <h3 className="text-lg font-bold mb-2">셀프 인테리어</h3>
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed h-8">바닥과 벽면 셀프 시공으로<br/>인테리어 비용을 30%~40% 절감하세요</p>
-                <span className="text-[10px] font-bold text-orange-400 flex items-center gap-1 group-hover:gap-2 transition-all group-hover:text-white">자세히 보기 <ChevronRightIcon className="w-3 h-3 text-white" /></span>
-              </Link>
+
+              {/* [HIDDEN] 상권분석 & 셀프인테리어 (추후 오픈 예정) */}
+              {/* <Link href="/market" className="...">상권분석</Link>
+              <Link href="/interior" className="...">셀프 인테리어</Link>
+              */}
             </div>
           </section>
 
           {/* 3. 롤링 배너 */}
           <section><RollingBanner /></section>
 
-          {/* 4. 성공 사례 섹션 */}
+          {/* 4. 성공 사례 섹션 (텍스트 수정됨) */}
           <section className="relative group/section">
             <div className="flex items-end justify-between mb-6">
-              <div><h2 className="text-xl md:text-2xl font-bold text-slate-900">프랜차이즈 실제 창업 성공 사례</h2><p className="mt-2 text-xs md:text-sm text-slate-500">실제 데이터와 현장 스토리로 보는 브랜드별 창업 사례입니다.</p></div>
+              <div>
+                  {/* 요청하신 텍스트 수정 적용 */}
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-900">프랜차이즈 창업 실제 성공 사례</h2>
+                  <p className="mt-2 text-xs md:text-sm text-slate-500">실제 데이터와 현장 스토리로 보는 브랜드별 창업 사례입니다.</p>
+              </div>
               <Link href="/cases" className="text-xs font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">전체 사례 보기 <ChevronRightIcon className="w-3 h-3" /></Link>
             </div>
             <div className="relative">
@@ -178,7 +209,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 5. 인기 프랜차이즈 */}
+          {/* 5. 인기 프랜차이즈 (기존 유지) */}
           <section className="relative group/section">
             <div className="flex items-end justify-between mb-6">
               <div>
@@ -226,7 +257,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 6. 통합 상담 신청 배너 (업데이트됨) */}
+          {/* 6. 통합 상담 신청 배너 (기존 유지) */}
           <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F172A] to-indigo-950 p-6 md:p-8 shadow-2xl border border-slate-700/50">
              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
              <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3"></div>

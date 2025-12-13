@@ -1,265 +1,328 @@
 'use client';
 
-import { use } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { CASES, CaseItem } from '@/lib/cases';
+import React from 'react';
+import Script from 'next/script';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell, LineChart, Line, LabelList
+} from 'recharts';
 import { 
-  ArrowLeftIcon, MapPinIcon, BuildingStorefrontIcon, 
-  LightBulbIcon, ChatBubbleBottomCenterTextIcon, CurrencyDollarIcon
+  MapPinIcon, CurrencyDollarIcon, HomeModernIcon, CalculatorIcon, 
+  ClockIcon, CalendarDaysIcon, ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/solid';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-const GRADE_INFO: any = {
-  'S': { label: 'S급 중심상권', desc: '유동인구가 폭발적인 번화가/역세권 (임대료 최상)' },
-  'A': { label: 'A급 오피스/복합', desc: '직장인과 거주민이 섞인 안정적 상권 (유동 풍부)' },
-  'B': { label: 'B급 주거/지역', desc: '아파트 단지 등 배후 수요가 탄탄한 실속 상권' },
+// -------------------------------------------------------------------------
+// [관리자 입력 데이터 모델]
+// -------------------------------------------------------------------------
+const CASE_DATA = {
+  id: 1,
+  brandName: "메가커피",
+  branchName: "강남역삼점",
+  startupDate: "2022년 05월",
+  heroImage: "/images/store_hero.jpg",
+  
+  location: "서울 강남구 역삼동",
+  monthlyRevenue: 5800, // 만원
+  rent: { deposit: 5000, monthly: 250 }, // 보증금 / 월세
+  netProfit: 1250,      // 만원
+  profitMargin: 21.5,   // %
+
+  images: {
+    store: ["/images/store_1.jpg", "/images/store_2.jpg"],
+    menu: ["/images/menu_1.jpg", "/images/menu_2.jpg", "/images/menu_3.jpg", "/images/menu_4.jpg"]
+  },
+
+  quarterlyRevenue: [
+    { name: '1분기', value: 4200 },
+    { name: '2분기', value: 5500 },
+    { name: '3분기', value: 5800 },
+    { name: '4분기', value: 4500 },
+  ],
+  quarterComment: "여름 성수기(2~3분기)에 매출이 30% 이상 급증하는 패턴을 보입니다. 겨울철에는 따뜻한 디저트 메뉴로 객단가를 방어했습니다.",
+
+  footTraffic: {
+    dailyAvg: 15400, // 일 평균 유동인구
+    competitors: 12, // 경쟁 업소 수
+    comment: "평일 점심시간대 오피스 인구가 폭발적으로 유입되는 전형적인 오피스 상권입니다. 주말에는 유동인구가 급감하므로 평일 5일에 집중하는 전략이 유효합니다.",
+    
+    weekRatio: [
+      { name: '주중', value: 75 },
+      { name: '주말', value: 25 }
+    ],
+    
+    dayRatio: [
+      { day: '월', value: 18 }, { day: '화', value: 18 }, { day: '수', value: 17 },
+      { day: '목', value: 17 }, { day: '금', value: 20 }, { day: '토', value: 6 }, { day: '일', value: 4 }
+    ],
+
+    timeRatio: [
+      { time: '05~09', value: 10 },
+      { time: '09~13', value: 45 },
+      { time: '13~17', value: 25 },
+      { time: '17~21', value: 15 },
+      { time: '21~01', value: 5 },
+      { time: '01~05', value: 0 },
+    ],
+    
+    lat: 37.4979,
+    lng: 127.0276
+  },
+
+  ownerComment: "오피스 상권 특성상 평일 점심 장사에 모든 걸 걸어야 합니다. 임대료가 낮은 이면도로를 선택한 대신, 배달 깃발을 공격적으로 꽂아 저녁 매출을 보완했습니다."
 };
 
-const COLORS = ['#3B82F6', '#F97316'];
+const COLORS = {
+  primary: '#4f46e5',
+  secondary: '#f59e0b',
+  accent: '#10b981',
+  pie: ['#4f46e5', '#94a3b8']
+};
 
-export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CaseDetailPage() {
   
-  // [핵심 수정] ID 찾는 로직 강화!
-  // 1. 정확한 ID로 찾기 (목록에서 클릭 시)
-  let data = CASES.find((c) => c.id === id);
+  const loadMap = () => {
+    if (!window.kakao || !window.kakao.maps) return;
+    const container = document.getElementById('mini-map');
+    const options = { 
+      center: new window.kakao.maps.LatLng(CASE_DATA.footTraffic.lat, CASE_DATA.footTraffic.lng), 
+      level: 3 
+    };
+    const map = new window.kakao.maps.Map(container, options);
+    const marker = new window.kakao.maps.Marker({ position: options.center });
+    marker.setMap(map);
+  };
 
-  // 2. 없으면 '-숫자' 떼고 원본 ID로 찾기 (메인에서 클릭 시 등)
-  if (!data) {
-    const originalId = id.replace(/-\d+$/, ''); 
-    data = CASES.find((c) => c.id === originalId || c.id.startsWith(originalId));
-  }
-
-  // 3. 그래도 없으면 첫 번째 데이터라도 보여주기 (방어 코드)
-  // (실제 운영 시에는 이 부분 빼도 됨, 지금은 빈 화면 방지용)
-  if (!data && CASES.length > 0) {
-     data = CASES[0];
-  }
-
-  if (!data) return <div className="p-20 text-center">데이터를 찾을 수 없습니다.</div>;
-
-  const otherCases = CASES.filter(c => c.id !== data!.id).slice(0, 3);
-  const grade = GRADE_INFO[data.areaGrade] || GRADE_INFO['B'];
-
-  const salesData = [
-    { name: '홀 매출', value: data.salesRatio?.hall || 0 },
-    { name: '배달/포장', value: data.salesRatio?.delivery || 0 },
-  ];
-
-  // 이미지 안전장치
-  const storeImages = data.storeImages && data.storeImages.length > 0 ? data.storeImages : [];
-  const menuImages = data.menuImages && data.menuImages.length > 0 ? data.menuImages : [];
+  // 문의하기 버튼 클릭 핸들러 (브랜드명 포함)
+  const handleInquiry = () => {
+    // 나중에 실제 문의 페이지로 이동하거나 모달을 띄울 때 brandName을 같이 넘깁니다.
+    alert(`'${CASE_DATA.brandName}' 창업 조건 문의 페이지로 이동합니다.`);
+    // 예: router.push(`/inquiry?brand=${CASE_DATA.brandName}`);
+  };
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-20">
-      
-      {/* 1. 히어로 배너 */}
-      <section className="relative h-[500px] w-full bg-[#0F172A]">
-        {data.mainImage ? (
-          <Image 
-            src={data.mainImage} 
-            alt={data.brand} 
-            fill 
-            className="object-cover opacity-40" 
-            priority
-            sizes="100vw"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-slate-800 opacity-40"></div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/40 to-transparent"></div>
+    <div className="min-h-screen bg-slate-50 pb-24">
+      <Script 
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_CLIENT_ID}&autoload=false`} 
+        strategy="afterInteractive"
+        onReady={() => window.kakao.maps.load(loadMap)}
+      />
+
+      {/* 1. 히어로 영역 */}
+      <header className="relative h-72 flex flex-col items-center justify-center text-white overflow-hidden">
+        <div className="absolute inset-0 bg-black/50 z-10"></div>
+        <div 
+            className="absolute inset-0 bg-cover bg-center z-0"
+            style={{ backgroundImage: `url('/images/franchise-hero.jpg')` }}
+        ></div>
         
-        <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-between p-6 md:p-10 max-w-6xl mx-auto">
-          <Link href="/cases" className="w-fit flex items-center gap-2 text-white/80 hover:text-white bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-white/20">
-            <ArrowLeftIcon className="w-4 h-4" /> 목록으로
-          </Link>
-          
-          <div className="animate-fade-in-up pb-8">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {data.tags?.map((tag, idx) => (
-                <span key={idx} className="px-3 py-1 bg-indigo-500 text-white text-xs font-bold rounded-full shadow-lg border border-indigo-400/30">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-            
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-2 drop-shadow-xl">
-              {data.brand} {data.branch}
-            </h1>
-            <p className="text-lg text-slate-300 font-medium flex items-center gap-2 mb-8">
-              <MapPinIcon className="w-5 h-5 text-slate-400" /> {data.area}
-            </p>
-            
-            <div className="inline-flex flex-col sm:flex-row bg-[#1E293B]/90 backdrop-blur-md border border-slate-600 rounded-3xl overflow-hidden shadow-2xl">
-               <div className="p-6 sm:p-8 min-w-[200px] border-b sm:border-b-0 sm:border-r border-slate-600">
-                  <p className="text-sm text-slate-400 font-bold mb-2">월 평균 매출</p>
-                  <p className="text-3xl sm:text-4xl font-black text-white tracking-tight">{data.monthlySales}</p>
-               </div>
-               <div className="p-6 sm:p-8 min-w-[200px] bg-indigo-900/30">
-                  <p className="text-sm text-yellow-400 font-bold mb-2 flex items-center gap-1">
-                    <CurrencyDollarIcon className="w-4 h-4"/> 월 순이익
-                  </p>
-                  <p className="text-3xl sm:text-4xl font-black text-yellow-400 tracking-tight">{data.netProfit}</p>
-                  <p className="text-xs text-indigo-300 mt-2 font-medium">수익률 {data.profitMargin} 달성</p>
-               </div>
-            </div>
+        <div className="relative z-20 text-center animate-fade-in-up">
+          <h1 className="text-3xl md:text-5xl font-black mb-3 tracking-tight drop-shadow-lg">
+            {CASE_DATA.brandName} <span className="text-indigo-300">{CASE_DATA.branchName}</span>
+          </h1>
+          <div className="inline-flex items-center gap-2 bg-black/30 px-5 py-2 rounded-full border border-white/20 backdrop-blur-md">
+            <CalendarDaysIcon className="w-4 h-4 text-indigo-300"/>
+            <span className="text-sm font-bold text-white tracking-wide">SINCE {CASE_DATA.startupDate}</span>
           </div>
         </div>
-      </section>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 space-y-12 mt-12">
+      <main className="max-w-6xl mx-auto px-4 -mt-12 relative z-30 space-y-10">
         
-        {/* 2. 매장 상세 분석 (메탈 그레이 적용 완료) */}
-        <section className="bg-[#1E293B] rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-700">
-           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <BuildingStorefrontIcon className="w-6 h-6 text-indigo-400" /> 매장 상세 분석
-           </h2>
-           
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 왼쪽: 이미지 & 스펙 */}
-              <div className="space-y-4">
-                 <div className="grid grid-cols-2 gap-3">
-                    {storeImages.length > 0 ? (
-                      storeImages.slice(0, 1).map((img, i) => (
-                        <div key={i} className="relative h-40 rounded-xl overflow-hidden bg-slate-800 group border border-slate-600">
-                           <Image src={img} alt="매장" fill className="object-cover" />
-                           <span className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">매장 전경</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="h-40 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 text-xs">이미지 없음</div>
-                    )}
-
-                    {menuImages.length > 0 ? (
-                      menuImages.slice(0, 1).map((img, i) => (
-                        <div key={i} className="relative h-40 rounded-xl overflow-hidden bg-slate-800 group border border-slate-600">
-                           <Image src={img} alt="메뉴" fill className="object-cover" />
-                           <span className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">대표 메뉴</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="h-40 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 text-xs">이미지 없음</div>
-                    )}
-                 </div>
-                 
-                 <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-                    <div className="flex justify-between items-start mb-2">
-                       <span className="text-xs font-bold text-slate-400">창업 시기</span>
-                       <span className="text-sm font-bold text-white">{data.startupYear}년</span>
-                    </div>
-                    <div className="flex justify-between items-start mb-1">
-                       <span className="text-xs font-bold text-slate-400">상권 등급</span>
-                       <span className={`text-sm font-extrabold px-2 py-0.5 rounded ${data.areaGrade === 'S' ? 'bg-rose-900/50 text-rose-300' : data.areaGrade === 'A' ? 'bg-indigo-900/50 text-indigo-300' : 'bg-emerald-900/50 text-emerald-300'}`}>
-                          {grade.label}
-                       </span>
-                    </div>
-                    <p className="text-[11px] text-slate-300 mt-2 bg-slate-700/50 p-2 rounded border border-slate-600 leading-relaxed">
-                       💡 {grade.desc}
-                    </p>
-                 </div>
+        {/* 2. 핵심 5대 지표 (메탈 그레이 카드) */}
+        <section className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6 text-white">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 divide-x-0 md:divide-x divide-slate-600">
+            <div className="col-span-2 md:col-span-1 flex flex-col items-center justify-center text-center p-2">
+              <MapPinIcon className="w-6 h-6 text-slate-400 mb-2"/>
+              <p className="text-xs text-slate-400 mb-1 font-bold uppercase tracking-wider">소재지</p>
+              <p className="font-bold text-white text-sm break-keep">{CASE_DATA.location}</p>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center p-2">
+              <CurrencyDollarIcon className="w-6 h-6 text-indigo-400 mb-2"/>
+              <p className="text-xs text-slate-400 mb-1 font-bold uppercase tracking-wider">월 평균 매출</p>
+              <p className="text-xl font-bold text-white">{CASE_DATA.monthlyRevenue.toLocaleString()}만</p>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center p-2">
+              <HomeModernIcon className="w-6 h-6 text-slate-400 mb-2"/>
+              <p className="text-xs text-slate-400 mb-1 font-bold uppercase tracking-wider">월 임대료 (보증금/월세)</p>
+              <p className="text-lg font-bold text-slate-200">
+                {CASE_DATA.rent.deposit.toLocaleString()} / {CASE_DATA.rent.monthly.toLocaleString()}
+              </p>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center p-2 bg-slate-700/50 rounded-xl md:bg-transparent">
+              <CalculatorIcon className="w-6 h-6 text-emerald-400 mb-2"/>
+              <p className="text-xs text-emerald-400 mb-1 font-bold uppercase tracking-wider">월 순이익</p>
+              <p className="text-2xl font-black text-emerald-400">{CASE_DATA.netProfit.toLocaleString()}만</p>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center p-2">
+              <div className="w-12 h-12 rounded-full border-4 border-indigo-500/30 flex items-center justify-center mb-2">
+                <span className="text-xs font-bold text-indigo-400">{CASE_DATA.profitMargin}%</span>
               </div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">수익률</p>
+            </div>
+          </div>
+        </section>
 
-              {/* 오른쪽: 매출 비중 (도넛 차트) */}
-              <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col justify-center">
-                 <h3 className="text-sm font-bold text-white mb-4 text-center">매출 발생 비중</h3>
-                 <div className="h-48 relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                          <Pie
-                             data={salesData}
-                             cx="50%" cy="50%"
-                             innerRadius={60}
-                             outerRadius={80}
-                             paddingAngle={5}
-                             dataKey="value"
-                             label={({ value }) => `${value}%`}
-                             stroke="none"
-                          >
-                             {salesData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                             ))}
-                          </Pie>
-                          <Tooltip contentStyle={{borderRadius: 12, backgroundColor: '#1e293b', border: 'none', color: '#fff'}} />
-                       </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                       <span className="text-xs text-slate-400">주력</span>
-                       <span className="text-lg font-bold text-white">
-                          {(data.salesRatio?.hall || 0) > (data.salesRatio?.delivery || 0) ? '홀 영업' : '배달/포장'}
-                       </span>
-                    </div>
-                 </div>
-                 <div className="flex justify-center gap-4 mt-2">
-                    <div className="flex items-center gap-1 text-xs text-slate-300">
-                       <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div> 홀 {data.salesRatio?.hall || 0}%
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-300">
-                       <div className="w-3 h-3 rounded-full bg-[#F97316]"></div> 배달 {data.salesRatio?.delivery || 0}%
-                    </div>
+        {/* 3. 매장 & 메뉴 이미지 */}
+        <section className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {CASE_DATA.images.store.map((img, i) => (
+              <div key={i} className="aspect-video bg-slate-200 rounded-2xl relative overflow-hidden shadow-sm group">
+                <div className="absolute inset-0 flex items-center justify-center text-slate-400">매장 사진 {i+1}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {CASE_DATA.images.menu.map((img, i) => (
+              <div key={i} className="aspect-square bg-slate-100 rounded-xl relative overflow-hidden shadow-sm hover:ring-2 hover:ring-indigo-500 transition-all">
+                <div className="absolute inset-0 flex items-center justify-center text-slate-300 text-xs">메뉴 {i+1}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 4. 분기별 매출 */}
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+          <h3 className="font-bold text-lg text-slate-900 mb-6 flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+            분기별 평균 매출 추이 (계절성)
+          </h3>
+          <div className="h-64 w-full mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={CASE_DATA.quarterlyRevenue} margin={{top:10, right:10, left:-20, bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize:12, fontWeight:'bold'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize:12}} />
+                <Tooltip cursor={{fill:'#f8fafc'}} contentStyle={{borderRadius:'12px', border:'none', boxShadow:'0 4px 6px -1px rgb(0 0 0 / 0.1)'}} formatter={(value:any)=>`${value.toLocaleString()}만원`} />
+                <Bar dataKey="value" fill={COLORS.primary} radius={[6, 6, 0, 0]} barSize={40}>
+                   <LabelList dataKey="value" position="top" formatter={(val:number) => `${(val/10000).toFixed(1)}억`} style={{fontSize:11, fill:'#64748b', fontWeight:'bold'}} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
+             <div className="mt-1"><span className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">POINT</span></div>
+             <p className="text-sm text-slate-700 leading-relaxed font-medium">{CASE_DATA.quarterComment}</p>
+          </div>
+        </section>
+
+        {/* 5. 유동인구 & 상권 입체 분석 */}
+        <section className="bg-slate-50 rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+          <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2 mb-6">
+            <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+            유동인구 & 상권 입체 분석
+          </h3>
+          
+          {/* [수정 완료] 핵심 지표 배너 (메탈 그레이 + 텍스트 크기 조정) */}
+          <div className="bg-slate-800 rounded-2xl p-6 text-center shadow-lg border border-slate-700 mb-8">
+             <h4 className="text-xs text-indigo-400 font-bold mb-3 tracking-wider uppercase">핵심 상권 지표</h4>
+             <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 text-xl md:text-2xl font-bold text-white leading-tight">
+                <span>일 평균 유동인구 <span className="text-indigo-400 ml-1">{CASE_DATA.footTraffic.dailyAvg.toLocaleString()}명</span></span>
+                <span className="hidden md:inline text-slate-600 font-thin">|</span>
+                <span>행정동 지역내 경쟁점 <span className="text-red-400 ml-1">{CASE_DATA.footTraffic.competitors}개</span></span>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+             
+             {/* 좌측 컬럼 */}
+             <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-white rounded-2xl p-4 h-48 flex flex-col shadow-sm border border-slate-100">
+                      <h4 className="text-xs font-bold text-slate-500 mb-2 text-center">주중 vs 주말</h4>
+                      <div className="flex-1">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <PieChart>
+                              <Pie data={CASE_DATA.footTraffic.weekRatio} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value">
+                                 {CASE_DATA.footTraffic.weekRatio.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS.pie[index % COLORS.pie.length]} />
+                                 ))}
+                                 <LabelList dataKey="value" position="outside" formatter={(val:number)=>`${val}%`} style={{fontSize:11, fontWeight:'bold', fill:'#64748b'}} stroke="none" />
+                              </Pie>
+                           </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                   </div>
+                   <div className="bg-white rounded-2xl p-4 h-48 flex flex-col shadow-sm border border-slate-100">
+                      <h4 className="text-xs font-bold text-slate-500 mb-2 text-center">요일별 추이</h4>
+                      <div className="flex-1">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <BarChart data={CASE_DATA.footTraffic.dayRatio}>
+                              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize:11}} />
+                              <Tooltip cursor={{fill:'transparent'}} />
+                              <Bar dataKey="value" fill={COLORS.secondary} radius={[3,3,0,0]} />
+                           </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-1 overflow-hidden border border-slate-100 shadow-sm">
+                   <div id="mini-map" className="w-full h-48 rounded-xl relative">
+                      <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">지도 로딩중...</div>
+                   </div>
+                   <div className="p-3 flex items-center gap-1 text-xs text-slate-500 font-bold">
+                      <MapPinIcon className="w-4 h-4 text-red-500"/> {CASE_DATA.location}
+                   </div>
+                </div>
+             </div>
+
+             {/* 우측 컬럼 */}
+             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col h-full">
+                <h4 className="text-sm font-bold text-slate-700 mb-6 flex items-center gap-1"><ClockIcon className="w-4 h-4 text-indigo-500"/> 시간대별 집중도</h4>
+                <div className="flex-1 min-h-[300px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={CASE_DATA.footTraffic.timeRatio} margin={{top:20, right:20, left:0, bottom:0}}>
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0"/>
+                         <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize:11}} padding={{left:10, right:10}} />
+                         <Tooltip contentStyle={{borderRadius:'8px'}} />
+                         <Line type="monotone" dataKey="value" stroke={COLORS.accent} strokeWidth={3} dot={{r:4, fill:'#fff', strokeWidth:2, stroke:COLORS.accent}}>
+                            <LabelList dataKey="value" position="top" offset={10} formatter={(val:number)=>`${val}%`} style={{fontSize:11, fontWeight:'bold', fill:COLORS.accent}} />
+                         </Line>
+                      </LineChart>
+                   </ResponsiveContainer>
+                </div>
+                <p className="text-xs text-center text-slate-400 mt-4">* 점심/저녁 피크타임 점유율을 확인하세요.</p>
+             </div>
+          </div>
+
+          <div className="bg-white border-2 border-emerald-100 rounded-xl p-4 flex gap-3 shadow-sm">
+             <div className="mt-1"><span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">ANALYSIS</span></div>
+             <p className="text-sm text-slate-700 leading-relaxed font-medium">{CASE_DATA.footTraffic.comment}</p>
+          </div>
+        </section>
+
+        {/* 6. 점주 코멘트 */}
+        <section className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+           <div className="absolute top-0 right-0 text-[10rem] font-serif leading-none text-white/5 -mr-4 -mt-8">”</div>
+           <div className="relative z-10">
+              <h3 className="text-indigo-400 font-bold text-sm mb-3 uppercase tracking-wider flex items-center gap-2">
+                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span> Owner's Comment
+              </h3>
+              <p className="text-lg md:text-xl font-medium leading-relaxed opacity-90">
+                 "{CASE_DATA.ownerComment}"
+              </p>
+              <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
+                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold shadow-lg">CEO</div>
+                 <div>
+                    <p className="text-sm font-bold text-white">{CASE_DATA.branchName} 점주님</p>
+                    <p className="text-xs text-indigo-300">현재 2년차 안정적 운영 중</p>
                  </div>
               </div>
            </div>
         </section>
 
-        {/* 3. 성공 비결 */}
-        <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-amber-100 rounded-2xl text-amber-600 shrink-0">
-              <LightBulbIcon className="w-8 h-8" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">성공 포인트</h3>
-              <p className="text-slate-700 leading-relaxed font-medium">"{data.successPoint}"</p>
-            </div>
-          </div>
+        {/* [추가] 7. 창업 문의 버튼 (브랜드명 연동) */}
+        <section className="sticky bottom-4 z-50 animate-bounce-in">
+           <button 
+              onClick={handleInquiry}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-bold py-4 rounded-xl shadow-2xl shadow-indigo-500/40 flex items-center justify-center gap-2 transition-all active:scale-95"
+           >
+              <ChatBubbleLeftRightIcon className="w-6 h-6" />
+              {CASE_DATA.brandName} 창업 조건 문의하기
+           </button>
         </section>
 
-        {/* 4. 점주님 인터뷰 */}
-        <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <ChatBubbleBottomCenterTextIcon className="w-6 h-6 text-indigo-600" />
-            점주님 한마디
-          </h3>
-          <div className="relative bg-slate-50 rounded-2xl p-6 border border-slate-100">
-            <div className="absolute -top-3 left-8 w-6 h-6 bg-slate-50 border-t border-l border-slate-100 transform rotate-45"></div>
-            <p className="text-slate-700 leading-7 whitespace-pre-wrap">{data.interview}</p>
-          </div>
-        </section>
-
-        {/* 5. 하단: 다른 사례 더보기 */}
-        <section className="pt-10 border-t border-slate-200">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">다른 성공 사례도 확인해보세요</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {otherCases.map((item) => (
-              <Link key={item.id} href={`/cases/${item.id}`} className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-all">
-                <div className="relative h-32 w-full bg-slate-100">
-                  {item.mainImage ? (
-                    <Image src={item.mainImage} alt={item.brand} fill className="object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">NO IMG</div>
-                  )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
-                </div>
-                <div className="p-4">
-                  <p className="text-xs text-indigo-600 font-bold mb-1">{item.brand}</p>
-                  <p className="text-sm font-bold text-slate-900 line-clamp-1">{item.summary}</p>
-                  <div className="mt-2 text-xs text-slate-500">
-                    순수익 <span className="font-bold text-slate-800">{item.netProfit}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-          
-          <div className="text-center">
-            <Link href="/cases" className="inline-block px-10 py-3.5 bg-slate-900 text-white rounded-full text-sm font-bold shadow-lg hover:bg-slate-800 hover:shadow-xl transition-all active:scale-95">
-              성공 사례 전체 목록 보기
-            </Link>
-          </div>
-        </section>
-
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

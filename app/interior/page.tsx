@@ -3,57 +3,73 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
-  XMarkIcon, ShoppingBagIcon, PlusIcon, CalculatorIcon, 
-  InformationCircleIcon, PencilSquareIcon, WrenchScrewdriverIcon 
+  XMarkIcon, ChevronRightIcon, CurrencyDollarIcon, 
+  WrenchScrewdriverIcon, ShieldCheckIcon, ShoppingBagIcon, 
+  PlusIcon, CalculatorIcon, InformationCircleIcon, PencilSquareIcon 
 } from '@heroicons/react/24/solid';
 import { calculateCost, fmtKRW, PRO_LABOR_COST } from '@/lib/interior-logic';
+
+// Swiper
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Pagination } from 'swiper/modules';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
-// [핵심 수정] 안전장치 적용! (이 부분이 없으면 에러 남)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+// [중요] 여기에 엉아의 진짜 주소와 키를 '따옴표 안에' 붙여넣으세요! (어드민이랑 똑같이!)
+const supabaseUrl = 'https://epnkmxtkbxkemmweswij.supabase.co'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbmtteHRrYnhrZW1td2Vzd2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMTk2OTUsImV4cCI6MjA3Nzg5NTY5NX0.f_fhGUmzEBxKoFPAdU1OFr7sEhXGLMG4C-uY2G3BsJs';
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// ... (이하 코드는 동일합니다. 아래 내용을 그대로 복사하세요)
 
 const PROMO_BANNERS = [
   { id: 1, title: '벽면 셀프 시공만으로 분위기 확 바꾸기', description: '소프트스톤, 데코 패널 등 벽면만 먼저 손보는 셀프 시공', tag: '소프트스톤 · 데코 패널', imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?q=80&w=1200' },
   { id: 2, title: '데코타일로 바닥 셀프 시공', description: '기존 바닥 철거 없이 올려 시공하는 방식으로 비용 절감', tag: '데코타일 셀프 시공', imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1200' },
 ];
 
-// 제품 상세 모달
+// [1] 제품 상세 모달
 function ProductDetailModal({ product, onClose }: { product: any; onClose: () => void; }) {
   if (!product) return null;
+
+  const price = Number(product.price_per_piece || 0);
+  const width = Number(product.tile_width || 0);
+  const height = Number(product.tile_height || 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
-        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-white/80 p-2 text-slate-800 shadow-md hover:bg-white transition-all"><XMarkIcon className="h-6 w-6" /></button>
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-white/80 p-2 text-slate-800 shadow-md hover:bg-white transition-all">
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+
         <div className="relative h-64 md:h-auto md:w-1/2 bg-slate-100">
           <img src={product.image_url || 'https://via.placeholder.com/600'} alt={product.name} className="h-full w-full object-cover" />
         </div>
+
         <div className="flex-1 p-6 md:p-8 flex flex-col overflow-y-auto bg-white">
           <div className="mb-4">
             <span className="inline-block rounded-md bg-indigo-50 px-2 py-1 text-[11px] font-bold text-indigo-600 mb-2">{product.tag}</span>
             <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-1">{product.name}</h3>
             <p className="text-xs text-slate-400">Code: {product.id.slice(0, 8).toUpperCase()}</p>
           </div>
+          
           <div className="flex-1 space-y-6">
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <h4 className="text-xs font-bold text-slate-500 mb-2">📌 제품 스펙</h4>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap">{product.spec_description || '상세 정보 없음'}</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {product.spec_description || `${width}x${height}mm / 1장당 ${price.toLocaleString()}원`}
+              </p>
             </div>
             <div>
               <h4 className="text-sm font-bold text-slate-900 mb-2">💡 장당 가격</h4>
-              <p className="text-lg font-bold text-indigo-600">{Number(product.price_per_piece).toLocaleString()}원 / 1장</p>
+              <p className="text-lg font-bold text-indigo-600">{price.toLocaleString()}원 / 1장</p>
             </div>
           </div>
+
           <div className="mt-6 pt-6 border-t border-slate-100">
              <p className="text-xs text-slate-500 mb-4 text-center">* 정확한 견적은 아래 계산기를 이용해주세요.</p>
-             <button className="w-full py-4 rounded-xl bg-[#1E293B] text-sm font-bold text-white shadow-lg hover:bg-slate-800 flex items-center justify-center gap-2"><ShoppingBagIcon className="w-4 h-4" /> 구매 문의하기</button>
+             <button className="w-full py-4 rounded-xl bg-[#1E293B] text-sm font-bold text-white shadow-lg hover:bg-slate-800 flex items-center justify-center gap-2">
+                <ShoppingBagIcon className="w-4 h-4" /> 구매 문의하기
+             </button>
           </div>
         </div>
       </div>
@@ -61,15 +77,17 @@ function ProductDetailModal({ product, onClose }: { product: any; onClose: () =>
   );
 }
 
-// 시공 사례 모달
+// [2] 시공 사례 모달
 function CaseDetailModal({ caseItem, onClose }: { caseItem: any; onClose: () => void; }) {
   if (!caseItem) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
-        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-black/50 p-2 text-white shadow-md hover:bg-black/70"><XMarkIcon className="h-6 w-6" /></button>
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-black/50 p-2 text-white shadow-md hover:bg-black/70">
+          <XMarkIcon className="h-6 w-6" />
+        </button>
         <div className="relative h-64 md:h-auto md:w-3/5 bg-slate-900">
-          <img src={caseItem.after_image} alt={caseItem.title} className="h-full w-full object-cover" />
+          <img src={caseItem.after_image} alt={caseItem.title} className="h-full w-full object-cover opacity-90" />
           <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-8">
              <h3 className="text-2xl font-bold text-white mb-1">{caseItem.title}</h3>
              <p className="text-indigo-300 text-sm font-bold">{Number(caseItem.cost_saved).toLocaleString()}원 절감 사례</p>
@@ -79,7 +97,11 @@ function CaseDetailModal({ caseItem, onClose }: { caseItem: any; onClose: () => 
            <div className="mb-6">
               <span className="text-xs font-bold text-slate-400 uppercase mb-2 block">Before Construction</span>
               <div className="h-40 rounded-xl overflow-hidden bg-slate-100 mb-4">
-                 {caseItem.before_image ? <img src={caseItem.before_image} alt="Before" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Before 없음</div>}
+                 {caseItem.before_image ? (
+                    <img src={caseItem.before_image} alt="Before" className="w-full h-full object-cover" />
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Before 사진 없음</div>
+                 )}
               </div>
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{caseItem.description}</p>
            </div>
@@ -89,6 +111,7 @@ function CaseDetailModal({ caseItem, onClose }: { caseItem: any; onClose: () => 
   );
 }
 
+// [3] 메인 페이지
 export default function InteriorPage() {
   const [activeTab, setActiveTab] = useState<'wall' | 'floor'>('wall');
   const [products, setProducts] = useState<any[]>([]);
@@ -98,28 +121,41 @@ export default function InteriorPage() {
   const [caseLimit, setCaseLimit] = useState(4);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [selectedCase, setSelectedCase] = useState<any>(null);
+
+  // 계산기 상태
   const [widthM, setWidthM] = useState<string>('3');
   const [lengthM, setLengthM] = useState<string>('4');
   const [zoneCount, setZoneCount] = useState<string>('1');
+
+  const [manualSpec, setManualSpec] = useState({
+    tile_width: 600,
+    tile_height: 600,
+    price_per_piece: 5000
+  });
+
   const [isManualMode, setIsManualMode] = useState(false);
-  const [manualSpec, setManualSpec] = useState({ tile_width: 600, tile_height: 600, price_per_piece: 5000 });
 
   useEffect(() => {
-    // [중요] 환경변수 체크: 없으면 실행 안 함 (배포 시 에러 방지)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-    }
-    
+    // [수정] 차단막 제거하고 무조건 실행!
     const fetchData = async () => {
       setLoading(true);
-      const { data: prodData } = await supabase.from('interior_products').select('*').eq('category', activeTab).order('created_at', { ascending: false });
+      // 자재
+      const { data: prodData } = await supabase
+        .from('interior_products')
+        .select('*')
+        .eq('category', activeTab)
+        .order('created_at', { ascending: false });
       if (prodData) setProducts(prodData);
 
-      const { data: caseData } = await supabase.from('interior_cases').select('*').order('created_at', { ascending: false });
+      // 시공사례
+      const { data: caseData } = await supabase
+        .from('interior_cases')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (caseData) setCases(caseData);
       setLoading(false);
     };
+
     fetchData();
     setProductLimit(6);
     setSelectedProduct(null);
@@ -133,7 +169,10 @@ export default function InteriorPage() {
     targetProduct = selectedProduct || (products.length > 0 ? products[0] : { tile_width: 600, tile_height: 600, price_per_piece: 5000 });
   }
 
-  const { materialCost, proCost, saveCost, pieceCount, isValid, spec } = calculateCost(widthM, lengthM, zoneCount, activeTab, targetProduct);
+  const { materialCost, proCost, saveCost, pieceCount, isValid, spec } = calculateCost(
+    widthM, lengthM, zoneCount, activeTab, targetProduct
+  );
+
   const visibleProducts = products.slice(0, productLimit);
   const visibleCases = cases.slice(0, caseLimit);
 
@@ -168,6 +207,7 @@ export default function InteriorPage() {
                 <button onClick={() => setActiveTab('floor')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'floor' ? 'bg-[#1E293B] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>바닥 (Floor)</button>
               </div>
            </div>
+
            {loading ? <div className="py-20 text-center text-slate-400">데이터를 불러오는 중...</div> : visibleProducts.length === 0 ? (
               <div className="py-20 text-center text-slate-400 bg-white rounded-2xl border border-slate-100">등록된 자재가 없습니다.</div>
            ) : (
@@ -206,11 +246,13 @@ export default function InteriorPage() {
                        <CalculatorIcon className="w-6 h-6 text-yellow-400" />
                        <h2 className="text-xl font-bold">셀프 견적 계산기</h2>
                     </div>
+                    
                     <div className="flex bg-slate-800 rounded-lg p-1">
                        <button onClick={() => setIsManualMode(false)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>선택 자재</button>
                        <button onClick={() => setIsManualMode(true)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isManualMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}><PencilSquareIcon className="w-3 h-3 inline mr-1"/>직접 입력</button>
                     </div>
                  </div>
+
                  <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10 flex items-start gap-3">
                     <PencilSquareIcon className="w-5 h-5 text-indigo-400 mt-1 shrink-0" />
                     <div>
@@ -227,6 +269,7 @@ export default function InteriorPage() {
                        )}
                     </div>
                  </div>
+
                  <div className="space-y-6">
                     <div>
                        <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 1. 시공할 공간 크기</p>
@@ -236,6 +279,8 @@ export default function InteriorPage() {
                           <div><label className="text-xs text-slate-400 mb-1 block">구역 수</label><input type="number" value={zoneCount} onChange={(e) => setZoneCount(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-indigo-500 outline-none" /></div>
                        </div>
                     </div>
+
+                    {/* 2. 자재 스펙 입력 */}
                     {isManualMode && (
                        <div className="animate-fadeIn">
                           <p className="text-xs font-bold text-indigo-300 mb-2 uppercase">STEP 2. 자재 정보 입력</p>
@@ -283,6 +328,7 @@ export default function InteriorPage() {
              </div>
            )}
         </section>
+
       </div>
 
       {selectedProduct && <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />}
