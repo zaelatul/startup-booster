@@ -26,13 +26,12 @@ export interface MarketAnalysisData {
   kpiCards: { title: string; value: string; desc: string; badge?: string }[];
 }
 
-// --- 색상 ---
+// --- 색상 상수 ---
 const COLOR_MALE = '#3B82F6';
 const COLOR_FEMALE = '#F97316';
 const AGE_COLORS = ['#94A3B8', '#64748B', '#475569', '#334155', '#1E293B', '#0F172A'];
 const COST_BAR_COLOR = '#F59E0B'; 
 const POP_BAR_COLOR = '#10B981'; 
-const TIME_BAR_COLOR = '#EC4899';
 
 const INDUSTRY_DATA = [
   { code: '', label: '전체 업종' },
@@ -49,24 +48,29 @@ const INDUSTRY_DATA = [
   { code: '슈퍼마켓', label: '슈퍼마켓' },
   { code: '미용실', label: '미용실' },
   { code: '피부관리실', label: '피부관리' },
-  { code: '네일숍', label: '네일아트' }, // 데이터에 있다면 추가
+  { code: '네일숍', label: '네일아트' },
   { code: '세탁소', label: '세탁소' },
   { code: '일반교습학원', label: '학원(입시/보습)' },
   { code: '예술학원', label: '학원(예체능)' },
   { code: '스포츠 강습', label: '헬스/필라테스' },
   { code: '일반의원', label: '병원/의원' },
   { code: '의약품', label: '약국' },
-  { code: '꽃집', label: '화초/꽃집' }, // 원본에 '화초'가 있다면 code를 '화초'로 변경
+  { code: '꽃집', label: '화초/꽃집' },
   { code: '인테리어', label: '인테리어' }
 ];
-const REGION_DATA: any = { '서울특별시': { '강남구': ['역삼1동', '청담동', '신사동', '논현1동', '삼성1동'], '종로구': ['청운효자동', '사직동', '삼청동', '종로1.2.3.4가동'], '마포구': ['서교동', '연남동', '망원1동'], }, '경기도': { '수원시 장안구': ['율천동', '정자1동', '조원1동'], },};
+
+const REGION_DATA: any = { 
+    '서울특별시': { '강남구': ['역삼1동', '청담동', '신사동', '논현1동', '삼성1동'], '종로구': ['청운효자동', '사직동', '삼청동', '종로1.2.3.4가동'], '마포구': ['서교동', '연남동', '망원1동'] }, 
+    '경기도': { '수원시 장안구': ['율천동', '정자1동', '조원1동'] }
+};
 
 // [PART 1] 검색 필터
 export const MarketFilters = ({ onSearch }: { onSearch: (addr: string, code: string) => void }) => {
   const [sido, setSido] = useState('서울특별시');
   const [gungu, setGungu] = useState('강남구');
-  const [dong, setDong] = useState('역삼1동'); // 기본값 변경
-  const [industry, setIndustry] = useState('한식'); // 기본값 변경
+  const [dong, setDong] = useState('역삼1동');
+  const [industry, setIndustry] = useState('한식');
+
   const handleSearchClick = () => { onSearch(`${sido} ${gungu} ${dong}`, industry); };
 
   return (
@@ -231,38 +235,38 @@ export const MarketCharts = ({ data }: { data: MarketAnalysisData }) => {
         {/* 5. 종합 리포트 */}
         {activeTab === 'summary' && (
           <div className="rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 h-full flex flex-col justify-center">
-             <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-             <div className="relative z-10">
-                 <div className="flex items-center justify-between mb-10">
-                     <div>
-                         <span className="text-indigo-400 font-bold text-xs tracking-wider uppercase mb-2 block">Premium Report</span>
-                         <h3 className="text-3xl font-extrabold mb-2">AI 상권 진단 결과</h3>
-                         <p className="text-slate-400 text-sm">유동인구 데이터를 중심으로 한 심층 분석입니다.</p>
-                     </div>
-                     <div className="text-right">
-                         <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">{data.grade}</div>
-                         <div className="text-sm text-slate-400 font-medium mt-1">Class</div>
-                     </div>
-                 </div>
-                 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                        <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-indigo-400">●</span> 성장성</h4>
-                        <p className="text-white font-bold mb-1">{data.summaryReport.growthTitle}</p>
-                        <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.growthDesc}</p>
-                     </div>
-                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                        <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-emerald-400">●</span> 안정성</h4>
-                        <p className="text-white font-bold mb-1">{data.summaryReport.stabilityTitle}</p>
-                        <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.stabilityDesc}</p>
-                     </div>
-                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                        <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-orange-400">●</span> 경쟁 강도</h4>
-                        <p className="text-white font-bold mb-1">{data.summaryReport.compTitle}</p>
-                        <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.compDesc}</p>
-                     </div>
-                 </div>
-             </div>
+              <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-10">
+                      <div>
+                          <span className="text-indigo-400 font-bold text-xs tracking-wider uppercase mb-2 block">Premium Report</span>
+                          <h3 className="text-3xl font-extrabold mb-2">AI 상권 진단 결과</h3>
+                          <p className="text-slate-400 text-sm">유동인구 데이터를 중심으로 한 심층 분석입니다.</p>
+                      </div>
+                      <div className="text-right">
+                          <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">{data.grade}</div>
+                          <div className="text-sm text-slate-400 font-medium mt-1">Class</div>
+                      </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+                         <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-indigo-400">●</span> 성장성</h4>
+                         <p className="text-white font-bold mb-1">{data.summaryReport.growthTitle}</p>
+                         <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.growthDesc}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+                         <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-emerald-400">●</span> 안정성</h4>
+                         <p className="text-white font-bold mb-1">{data.summaryReport.stabilityTitle}</p>
+                         <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.stabilityDesc}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+                         <h4 className="font-bold text-lg text-white mb-2 flex items-center gap-2"><span className="text-orange-400">●</span> 경쟁 강도</h4>
+                         <p className="text-white font-bold mb-1">{data.summaryReport.compTitle}</p>
+                         <p className="text-slate-300 text-sm leading-relaxed">{data.summaryReport.compDesc}</p>
+                      </div>
+                  </div>
+              </div>
           </div>
         )}
       </div>
