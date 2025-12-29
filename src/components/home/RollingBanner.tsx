@@ -1,73 +1,133 @@
-// 신규 — src/components/home/RollingBanner.tsx
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { createBrowserClient } from '@supabase/ssr';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import { XMarkIcon, MagnifyingGlassPlusIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/solid';
 
-type BannerItem = {
-  id: number;
-  badge: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-};
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
 
-const ITEMS: BannerItem[] = [
-  {
-    id: 1,
-    badge: '창업부스터 한정 특가 소식',
-    title: '소프트포트 회원 전용, POS·키오스크 패키지 할인',
-    description:
-      '현재 가맹점 및 예비창업자 대상 POS/키오스크 패키지를 특별가로 제공합니다.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80',
-  },
-  // 필요하면 여기 배열에 배너를 더 추가하면 자동으로 롤링됨
-];
+export default function RollingBanner({ location }: { location: string }) {
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [zoomBanner, setZoomBanner] = useState<any | null>(null);
 
-export default function RollingBanner() {
-  const [index, setIndex] = useState(0);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
-    if (ITEMS.length <= 1) return;
+    const fetchBanners = async () => {
+      const { data } = await supabase
+        .from('banners')
+        .select('*')
+        .eq('location', location)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
 
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % ITEMS.length);
-    }, 7000);
+      if (data && data.length > 0) {
+        setBanners(data);
+      }
+      setLoading(false);
+    };
 
-    return () => clearInterval(timer);
-  }, []);
+    fetchBanners();
+  }, [location]);
 
-  const current = ITEMS[index];
+  // 배너 높이: 모바일 100px / 웹 250px (50% 축소 유지)
+  if (loading) return <div className="w-full h-[100px] md:h-[250px] bg-slate-100 animate-pulse rounded-lg"></div>;
+  if (banners.length === 0) return null;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-3xl bg-slate-900 text-white shadow-lg md:flex-row">
-      {/* 텍스트 영역 */}
-      <div className="flex flex-1 flex-col justify-center gap-3 px-6 py-6 md:px-8 md:py-8">
-        <span className="inline-flex w-fit items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
-          {current.badge}
-        </span>
-        <h2 className="text-lg font-semibold md:text-xl">{current.title}</h2>
-        <p className="text-sm text-slate-300">{current.description}</p>
-
-        <button
-          type="button"
-          className="mt-3 inline-flex w-fit items-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+    <>
+      <div className="w-full h-[100px] md:h-[250px] relative overflow-hidden group rounded-lg md:rounded-2xl shadow-sm">
+        <Swiper
+          modules={[Autoplay, Pagination, Navigation]}
+          spaceBetween={0}
+          slidesPerView={1}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
+          pagination={{ 
+              clickable: true,
+              modifierClass: 'swiper-pagination-custom-' 
+          }}
+          navigation={false} 
+          loop={banners.length > 1}
+          className="w-full h-full"
         >
-          자세히 보기 →
-        </button>
+          {banners.map((banner) => (
+            <SwiperSlide key={banner.id} className="relative w-full h-full bg-slate-900 cursor-pointer" onClick={() => setZoomBanner(banner)}>
+                <div className="absolute inset-0">
+                    <Image 
+                    src={banner.image_url} 
+                    alt={banner.title} 
+                    fill 
+                    className="object-cover transition-transform duration-700 hover:scale-105"
+                    priority 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                </div>
+
+                <div className="absolute top-2 right-2 bg-black/20 p-1.5 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <MagnifyingGlassPlusIcon className="w-4 h-4 text-white/80" />
+                </div>
+
+                <div className="absolute bottom-0 left-0 p-4 w-full text-left">
+                    {banner.subtitle && (
+                        <span className="inline-block px-1.5 py-0.5 bg-indigo-600/90 text-white text-[9px] font-bold rounded mb-1">
+                            {banner.subtitle}
+                        </span>
+                    )}
+                    <h2 className="text-sm md:text-3xl font-bold text-white leading-tight drop-shadow-md truncate pr-8">
+                        {banner.title}
+                    </h2>
+                </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+        
+        <style jsx global>{`
+          .swiper-pagination-bullet { background: white !important; opacity: 0.5; width: 4px; height: 4px; margin: 0 3px !important; }
+          .swiper-pagination-bullet-active { background: #6366f1 !important; opacity: 1; width: 12px; border-radius: 10px; }
+          .swiper-pagination { bottom: 10px !important; text-align: right !important; padding-right: 12px; }
+        `}</style>
       </div>
 
-      {/* 이미지 영역 */}
-      <div className="relative h-40 w-full md:h-auto md:w-80">
-        <Image
-          src={current.imageUrl}
-          alt={current.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 320px"
-        />
-      </div>
-    </article>
+      {/* [NEW] 상세 이미지 팝업 (Detail Image 우선 노출) */}
+      {zoomBanner && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-fade-in" onClick={() => setZoomBanner(null)}>
+           <button onClick={() => setZoomBanner(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 transition-all z-50">
+              <XMarkIcon className="w-6 h-6" />
+           </button>
+
+           <div className="relative w-full max-w-5xl h-[70vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              {/* 👇 여기가 핵심: detail_image_url이 있으면 그거 보여주고, 없으면 그냥 배너 이미지 보여줌 */}
+              <Image 
+                src={zoomBanner.detail_image_url || zoomBanner.image_url} 
+                alt={zoomBanner.title} 
+                fill 
+                className="object-contain" 
+              />
+           </div>
+
+           <div className="absolute bottom-10 left-0 w-full text-center p-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-white text-xl font-bold mb-2">{zoomBanner.title}</h3>
+              {zoomBanner.subtitle && <p className="text-slate-300 text-sm mb-6">{zoomBanner.subtitle}</p>}
+              
+              {zoomBanner.link_url && (
+                  <Link href={zoomBanner.link_url} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg hover:scale-105">
+                      자세히 보기 <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                  </Link>
+              )}
+           </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { ReactNode } from 'react';
 import Script from 'next/script'; // 구글 스크립트 로드용 컴포넌트
 import HeaderMain from '@/components/HeaderMain';
+// [추가] 모바일 하단 네비게이션 불러오기
+import MobileNav from '@/components/layout/MobileNav';
 
 export const metadata: Metadata = {
   title: '창업부스터 - 데이터 기반 창업 플랫폼',
@@ -42,9 +44,13 @@ export default function RootLayout({ children }: Props) {
         <HeaderMain />
         
         {/* 본문 */}
-        <main className="w-full">
+        {/* [수정] pb-16: 하단 네비게이션 높이만큼 패딩을 줘서 내용 가림 방지 */}
+        <main className="w-full pb-16 md:pb-0">
           {children}
         </main>
+
+        {/* [추가] 모바일 하단 네비게이션 (PC에서는 자동으로 숨겨짐) */}
+        <MobileNav />
       </body>
     </html>
   );

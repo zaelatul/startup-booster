@@ -1,48 +1,33 @@
 'use client';
 
 import Link from 'next/link';
-import { RocketLaunchIcon, UserCircleIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon } from '@heroicons/react/24/solid';
 
 export default function HeaderMain() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
-        {/* 1. 로고 영역 (클릭 시 홈으로 이동) */}
-        <Link 
-          href="/" 
-          className="group flex items-center gap-2 transition-opacity hover:opacity-80"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-sm group-hover:shadow-md transition-all transform group-hover:scale-105">
-            <RocketLaunchIcon className="h-5 w-5 text-white" />
-          </div>
-          <div className="flex flex-col justify-center">
-            <span className="text-lg font-extrabold leading-none text-slate-900 tracking-tight">
-              창업부스터
-            </span>
-            <span className="text-[10px] font-bold text-indigo-600 tracking-widest mt-0.5">
-              STARTUP BOOSTER
-            </span>
-          </div>
+        
+        {/* 로고 */}
+        <Link href="/" className="flex items-center gap-2">
+           <span className="text-lg">🚀</span>
+           <span className="text-lg font-extrabold text-slate-900">창업부스터</span>
         </Link>
 
-        {/* 2. 우측 메뉴 */}
+        {/* 메뉴 */}
         <div className="flex items-center gap-3">
-          <button 
-            type="button"
-            className="hidden rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 sm:inline-block"
-            onClick={() => alert('서비스 소개 페이지 준비 중입니다.')}
+          <Link href="/admin/franchises" className="text-xs font-bold text-slate-400">관리자</Link>
+
+          {/* 👇 [테스트] 버튼을 아주 눈에 띄는 빨간색으로 바꿨습니다 👇 */}
+          <Link
+            href="/login" 
+            className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-6 py-3 text-sm font-black text-white hover:bg-red-500 transition-all shadow-lg"
           >
-            서비스 소개
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-95"
-            onClick={() => alert('로그인 기능 연동 준비 중입니다.')}
-          >
-            <UserCircleIcon className="h-4 w-4 text-slate-400" />
-            간편 로그인
-          </button>
+            <UserCircleIcon className="h-5 w-5 text-white" />
+            <span>찾았다! 내 파일!</span>
+          </Link>
         </div>
+
       </div>
     </header>
   );

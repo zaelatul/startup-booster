@@ -17,8 +17,12 @@
     "check": "npm run typecheck && npm run lint && npm run test:e2e"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
-    "@supabase/supabase-js": "^2.80.0",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.88.0",
+    "@toast-ui/react-editor": "^3.2.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.554.0",
     "next": "^16.0.10",

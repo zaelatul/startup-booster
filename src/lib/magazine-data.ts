@@ -1,16 +1,17 @@
+// web/src/lib/magazine-data.ts
+
 export type MagazineArticle = {
   id: string;
   title: string;
   description: string;
   category: string;
-  thumbnailUrl: string; // 리스트용 썸네일
+  thumbnailUrl: string;
   date: string;
   readTime: string;
   author: string;
-  // 상세 페이지용 데이터
   contentTitle?: string;
-  contentParagraphs: string[]; // 본문 단락들
-  contentImages: string[]; // 본문 중간에 들어갈 이미지들
+  contentParagraphs: string[];
+  contentImages: string[];
 };
 
 export type PromoBanner = {
@@ -46,8 +47,7 @@ export const MAGAZINE_BANNERS: PromoBanner[] = [
   },
 ];
 
-// [매거진 기사 목록 데이터] (상세 내용 포함)
-// 더보기 테스트를 위해 데이터를 충분히 생성
+// [매거진 기사 원본]
 const SAMPLE_ARTICLES_RAW = [
   {
     id: 'mag-1',
@@ -103,7 +103,7 @@ const SAMPLE_ARTICLES_RAW = [
       '다시 오픈한 10평짜리 작은 가게가 어떻게 월 매출 4천만 원을 달성하게 되었는지, 그 처절하고도 생생한 재기 성공기를 인터뷰에 담았습니다.',
     ],
     contentImages: [
-      'https://images.unsplash.com/photo-1513639776629-7b611594629b?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1513639776629-7b611594e29b?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1200&q=80',
     ],
@@ -143,11 +143,11 @@ const SAMPLE_ARTICLES_RAW = [
   },
 ];
 
-// 데이터를 뻥튀기하여 무한 스크롤 테스트 (30개로 증식)
+// [데이터 생성] 30개로 뻥튀기 (무한 스크롤 테스트용)
 export const MAGAZINE_ARTICLES: MagazineArticle[] = Array.from({ length: 30 }).map((_, idx) => {
   const original = SAMPLE_ARTICLES_RAW[idx % SAMPLE_ARTICLES_RAW.length];
   return {
     ...original,
-    id: `${original.id}-${idx}`, // 고유 ID 생성
+    id: `${original.id}-${idx}`, // 고유 ID 부여
   };
 });

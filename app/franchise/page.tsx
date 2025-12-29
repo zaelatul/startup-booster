@@ -1,4 +1,3 @@
-// web/app/franchise/page.tsx
 'use client';
 
 import React from 'react';
@@ -7,7 +6,8 @@ import {
   BarChart, CartesianGrid, XAxis, YAxis, Bar, 
   LineChart, Line, ReferenceLine 
 } from 'recharts';
-import Header from '@/components/Header'; // 헤더가 있다면 사용, 없으면 주석
+// 👇 [추가] 방금 만든 리뷰 컴포넌트 가져오기
+import ReviewSection from '@/components/franchise/ReviewSection';
 
 export default function FranchiseDetail() {
   // 1. 비용 구조 데이터
@@ -38,7 +38,7 @@ export default function FranchiseDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* 헤더 영역 */}
+      {/* 헤더 영역 (기존 코드 유지) */}
       <div className="bg-white border-b border-gray-100 h-16 flex items-center px-4 sticky top-0 z-50">
          <span className="font-bold text-lg">창업부스터</span>
       </div>
@@ -140,7 +140,11 @@ export default function FranchiseDetail() {
           </div>
         </section>
 
-        {/* 4. 하단 CTA (텍스트 수정 완료) */}
+        {/* 👇 [핵심] 4. 리뷰 섹션 추가 (여기 꽂았습니다!) */}
+        {/* franchiseId는 실제로는 페이지 URL에서 받아와야 하지만, 일단 'mega-coffee'로 고정 */}
+        <ReviewSection franchiseId="mega-coffee" />
+
+        {/* 5. 하단 CTA */}
         <section className="mt-8 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 text-center text-white">
            <h3 className="text-xl font-bold mb-2">전문가에게 상세 견적 받기</h3>
            <p className="text-gray-300 mb-6 text-sm leading-relaxed whitespace-pre-line">
