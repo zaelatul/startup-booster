@@ -3,14 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { QUESTIONS, calculateMbti, MbtiResult, MBTI_BANNERS as DUMMY_BANNERS } from '@/lib/mbti-data';
+import { QUESTIONS, calculateMbti, MbtiResult } from '@/lib/mbti-data';
 import { CheckCircleIcon, ArrowPathIcon, SparklesIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
-// [추가] Supabase 연결
+// Supabase 연결
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -19,10 +19,10 @@ const supabase = createClient(
 export default function MbtiPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [result, setResult] = useState<MbtiResult | null>(null);
-  const [banners, setBanners] = useState<any[]>([]); // [NEW] 배너 상태
+  const [banners, setBanners] = useState<any[]>([]); 
   const resultRef = useRef<HTMLDivElement>(null);
 
-  // [추가] 배너 데이터 Fetching
+  // 배너 데이터 Fetching
   useEffect(() => {
     async function fetchBanners() {
       const { data } = await supabase
@@ -34,10 +34,8 @@ export default function MbtiPage() {
       
       if (data && data.length > 0) {
         setBanners(data);
-      } else {
-        // 데이터가 없으면 기존 더미(mbti-data) 사용 (구조 맞춤)
-        setBanners(DUMMY_BANNERS.map(b => ({ ...b, image_url: b.imageUrl }))); 
       }
+      // 가짜 데이터(DUMMY_BANNERS) Fallback 코드 삭제함 (가짜 데이터 제거 완료)
     }
     fetchBanners();
   }, []);
@@ -70,41 +68,47 @@ export default function MbtiPage() {
     <main className="min-h-screen bg-slate-50 pb-20">
       <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">
         
-        {/* 1. 배너 (실제 DB 연동) */}
-        <section className="relative overflow-hidden rounded-3xl shadow-xl bg-[#1E293B] mb-10">
-          <Swiper 
-            modules={[Autoplay, Pagination]} 
-            autoplay={{ delay: 4000 }} 
-            pagination={{ clickable: true }} 
-            loop={banners.length > 1} 
-            // [수정] 높이: 모바일 h-40 (40% 축소), PC h-64 유지
-            className="h-40 md:h-64"
-          >
-            {banners.map((banner) => (
-              <SwiperSlide key={banner.id}>
-                <div className="relative h-full w-full flex flex-col justify-center p-6 md:p-12">
-                  <div className="absolute inset-0 opacity-40 bg-cover bg-center" style={{ backgroundImage: `url(${banner.image_url || banner.imageUrl})` }} />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] to-transparent" />
-                  <div className="relative z-10">
-                    <span className="inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-indigo-600 text-[9px] md:text-[10px] font-bold text-white mb-2 md:mb-3 shadow-sm">MBTI TEST</span>
-                    {/* [수정] 폰트 크기 최적화 */}
-                    <h2 className="text-lg md:text-3xl font-extrabold text-white mb-1 md:mb-2 leading-tight">{banner.title}</h2>
-                    <p className="text-xs md:text-sm text-slate-300 opacity-90 line-clamp-1 md:line-clamp-none">{banner.subtitle}</p>
-                  </div>
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </section>
+        {/* 1. 배너 (실제 DB 연동, 사이즈 통일) */}
+        {banners.length > 0 && (
+            <section className="relative overflow-hidden rounded-3xl shadow-xl bg-[#1E293B] mb-10 w-full aspect-[1920/500]">
+            <Swiper 
+                modules={[Autoplay, Pagination]} 
+                autoplay={{ delay: 4000 }} 
+                pagination={{ clickable: true }} 
+                loop={banners.length > 1} 
+                // 강제 높이 삭제하고 w-full h-full로 부모 비율(aspect)을 따르게 함
+                className="w-full h-full"
+            >
+                {banners.map((banner) => (
+                <SwiperSlide key={banner.id}>
+                    <div className="relative h-full w-full flex flex-col justify-center p-6 md:p-12">
+                    <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${banner.image_url})` }} />
+                    {/* ✅ [수정] 그라데이션 div 삭제됨 */}
+                    {/* <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] to-transparent" /> */}
+                    
+                    {/* 텍스트가 잘 보이도록 반투명 배경을 글자 뒤에만 살짝 추가하거나, 
+                        이미지 자체가 어두운 경우 그대로 둡니다. 
+                        여기서는 그라데이션 제거 요청에 따라 텍스트 가독성을 위한 최소한의 그림자만 유지합니다. */}
+                    <div className="relative z-10 drop-shadow-md">
+                        <span className="inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-indigo-600 text-[9px] md:text-[10px] font-bold text-white mb-2 md:mb-3 shadow-sm">MBTI TEST</span>
+                        <h2 className="text-lg md:text-3xl font-extrabold text-white mb-1 md:mb-2 leading-tight drop-shadow-lg">{banner.title}</h2>
+                        <p className="text-xs md:text-sm text-white opacity-90 line-clamp-1 md:line-clamp-none drop-shadow-md font-medium">{banner.subtitle}</p>
+                    </div>
+                    </div>
+                </SwiperSlide>
+                ))}
+            </Swiper>
+            </section>
+        )}
 
         {/* 2. 진행률 */}
         <div className="sticky top-[70px] z-30 bg-white/90 backdrop-blur-md py-3 px-4 rounded-xl border border-slate-200 shadow-sm mb-8 transition-all">
            <div className="flex justify-between text-xs font-bold text-slate-500 mb-1.5">
-              <span>진행률</span>
-              <span className="text-indigo-600">{progress}%</span>
+             <span>진행률</span>
+             <span className="text-indigo-600">{progress}%</span>
            </div>
            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+             <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
            </div>
         </div>
 
@@ -113,7 +117,6 @@ export default function MbtiPage() {
           {QUESTIONS.map((q, idx) => (
             <div key={q.id} className={`transition-all duration-500 ${idx > 0 && !answers[QUESTIONS[idx-1].id] ? 'opacity-40 blur-[1px] pointer-events-none' : 'opacity-100'}`}>
               <div className="bg-white rounded-3xl p-5 md:p-8 shadow-sm border border-slate-100">
-                {/* [수정] 질문 텍스트 크기 30% 축소 (text-sm), 볼드체 유지, PC는 text-lg */}
                 <h3 className="text-sm md:text-lg font-bold text-slate-800 mb-4 md:mb-6 flex gap-2.5 md:gap-3 items-start md:items-center">
                    <span className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs md:text-sm font-extrabold mt-0.5 md:mt-0">{q.id}</span>
                    <span className="leading-snug">{q.text}</span>

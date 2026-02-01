@@ -3,23 +3,20 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createClient } from '@supabase/supabase-js'; 
+import { createBrowserClient } from '@supabase/ssr';
 import { FRANCHISE_CATEGORIES } from '@/lib/franchise-data'; 
 import { 
-  MagnifyingGlassIcon, FunnelIcon, FireIcon, PlusIcon, 
+  MagnifyingGlassIcon, FireIcon, 
   CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ChevronDownIcon
 } from '@heroicons/react/24/solid';
 import RollingBanner from '@/components/home/RollingBanner';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const QUICK_FILTERS = [
-  { id: 'default', name: '✨ 추천순', icon: FireIcon },
+  { id: 'default', name: '✨ 추천순', icon: FireIcon }, 
+  { id: 'revenue', name: '💰 평균 매출순', icon: ChartBarIcon },
+  { id: 'revenuePerPyeong', name: '📈 평당 매출순', icon: ChartBarIcon },
   { id: 'stores_desc', name: '🛡️ 가맹점순', icon: UserGroupIcon },
-  { id: 'startup_asc', name: '💰 소자본순', icon: CurrencyDollarIcon },
+  { id: 'startup_asc', name: '🪙 소자본순', icon: CurrencyDollarIcon },
 ];
 
 export default function FranchiseExplorePage() {
@@ -30,9 +27,14 @@ export default function FranchiseExplorePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('default');
   
-  const INITIAL_COUNT = 6;
-  const LOAD_STEP = 6;
+  const INITIAL_COUNT = 12; 
+  const LOAD_STEP = 12; 
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT); 
+
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ), []);
 
   useEffect(() => {
     async function fetchData() {
@@ -40,22 +42,44 @@ export default function FranchiseExplorePage() {
       const { data, error } = await supabase
         .from('franchises')
         .select('*')
+        .order('priority', { ascending: false }) 
         .order('created_at', { ascending: false });
 
       if (data) {
-        const mappedData = data.map((item) => ({
-          id: item.id,
-          name: item.name,
-          category: item.category || '기타',
-          description: item.description || '',
-          avgSales: item.avg_revenue?.nationwide || 0,
-          startupCost: item.initial_costs?.totalAvg || 0,
-          storeCount: item.store_summary?.total || 0,
-          heroImage: item.hero_image || item.logo_url, 
-          tags: item.tags || [],
-          isHot: item.is_popular || false, 
-          rankChange: 0 
-        }));
+        const mappedData = data.map((item) => {
+            let avgSales = 0;
+            let avgSalesPerPyeong = 0;
+
+            if (typeof item.avg_revenue === 'object') {
+                avgSales = item.avg_revenue?.total || item.avg_revenue?.nationwide || 0;
+                avgSalesPerPyeong = item.avg_revenue?.perPyeong || 0;
+            } else {
+                avgSales = item.avg_revenue || 0;
+                avgSalesPerPyeong = item.avg_revenue_pyeong || 0; 
+            }
+
+            const costs = item.initial_costs || {};
+            const calculatedStartupCost = (costs.joinFee || 0) + 
+                                          (costs.eduFee || 0) + 
+                                          (costs.deposit || 0) + 
+                                          (costs.other || 0); 
+
+            return {
+                id: item.id,
+                name: item.name,
+                category: item.category || '기타',
+                description: item.description || '',
+                avgSales: avgSales,
+                avgSalesPerPyeong: avgSalesPerPyeong,
+                startupCost: calculatedStartupCost,
+                storeCount: item.store_summary?.total || 0,
+                heroImage: item.hero_image || item.logo_url, 
+                tags: item.tags || [],
+                isHot: item.is_popular || false, 
+                priority: item.priority || 0, 
+                rankChange: 0 
+            };
+        });
         setDbList(mappedData);
       } else {
         console.error('데이터 가져오기 실패:', error);
@@ -63,7 +87,7 @@ export default function FranchiseExplorePage() {
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [supabase]);
 
   const filteredList = useMemo(() => {
     let result = dbList.filter((brand) => {
@@ -75,10 +99,15 @@ export default function FranchiseExplorePage() {
 
     return result.sort((a, b) => {
       if (sortBy === 'default') {
+        if (a.priority !== b.priority) {
+            return b.priority - a.priority; 
+        }
         if (a.isHot && !b.isHot) return -1;
         if (!a.isHot && b.isHot) return 1;
-        return b.avgSales - a.avgSales;
+        return 0;
       }
+      if (sortBy === 'revenue') return b.avgSales - a.avgSales;
+      if (sortBy === 'revenuePerPyeong') return b.avgSalesPerPyeong - a.avgSalesPerPyeong;
       if (sortBy === 'stores_desc') return b.storeCount - a.storeCount;
       if (sortBy === 'startup_asc') return a.startupCost - b.startupCost;
       return 0;
@@ -94,16 +123,21 @@ export default function FranchiseExplorePage() {
 
   const formatMoney = (val: number) => {
     if (!val) return '-';
-    if (val >= 10000) return `${(val / 10000).toFixed(1)}억`;
-    return `${(val / 1000).toFixed(0)}천`;
+    if (val >= 100000) {
+       const eok = Math.floor((val / 100000) * 100) / 100;
+       return `${eok}억`;
+    }
+    const man = Math.round(val / 10);
+    return `${man.toLocaleString()}만원`;
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
-      {/* 1. 상단 롤링 배너 */}
+      {/* 1. 상단 롤링 배너 (사이즈 통일) */}
+      {/* ✅ [수정] aspect-[1920/500] 적용, 고정 높이 제거 */}
       <div className="max-w-6xl mx-auto px-0 md:px-4 mt-0 md:mt-6">
-         <div className="h-20 md:h-44 overflow-hidden shadow-sm md:rounded-2xl">
+         <div className="w-full aspect-[1920/500] overflow-hidden shadow-sm md:rounded-2xl">
             <RollingBanner location="franchise" />
          </div>
       </div>
@@ -111,10 +145,14 @@ export default function FranchiseExplorePage() {
       {/* 2. 컨트롤 헤더 */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm mt-2 md:mt-4">
         <div className="max-w-6xl mx-auto px-4 py-3 md:py-4">
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-1">
              <h1 className="text-lg md:text-2xl font-bold text-slate-900">프랜차이즈 분석</h1>
              <span className="text-xs font-bold text-slate-500">총 {filteredList.length}개</span>
           </div>
+          
+          <p className="text-[10px] md:text-xs font-bold text-emerald-600 mb-3 break-keep leading-snug">
+            [창업비용 : 각 브랜드별 제공된 &apos;정보공개서&apos; 기준의 평수/비용을 반영]
+          </p>
           
           <div className="relative mb-3">
             <input 
@@ -170,18 +208,11 @@ export default function FranchiseExplorePage() {
 
         {!loading && visibleList.length > 0 ? (
           <>
-            {/* 3열 그리드 */}
             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-5">
               {visibleList.map((brand) => (
                 <Link 
                   href={`/franchise/${brand.id}`} 
                   key={brand.id} 
-                  // [수정] 테두리 강화 및 호버 효과 추가
-                  // 1. border-slate-300: 기본 테두리를 더 진하게
-                  // 2. hover:border-indigo-500: 호버 시 테두리 색상 변경
-                  // 3. hover:-translate-y-1: 호버 시 살짝 떠오름
-                  // 4. hover:shadow-xl: 호버 시 그림자 강화
-                  // 5. duration-300: 부드러운 전환
                   className="bg-white rounded-xl border border-slate-300 overflow-hidden hover:shadow-xl hover:border-indigo-500 hover:-translate-y-1 transition-all duration-300 group block"
                 >
                   {/* 이미지 영역 */}
@@ -198,11 +229,12 @@ export default function FranchiseExplorePage() {
                       <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">No Img</div>
                     )}
                     <div className="absolute top-1 left-1 flex gap-0.5">
+                      {brand.priority > 0 && <span className="bg-indigo-600 text-white px-1 py-0.5 rounded-[4px] text-[8px] font-bold shadow-md">PICK</span>}
                       {brand.isHot && <span className="bg-red-600 text-white px-1 py-0.5 rounded-[4px] text-[8px] font-bold shadow-md">HOT</span>}
                     </div>
                   </div>
                   
-                  {/* 정보 영역: 7단계 메탈 그레이 (Dark Slate) */}
+                  {/* 정보 영역 */}
                   <div className="p-2 md:p-4 bg-gradient-to-b from-slate-700 to-slate-800 border-t border-slate-600">
                     <h3 className="text-xs md:text-lg font-bold text-white mb-1 truncate leading-tight tracking-wide drop-shadow-sm">
                       {brand.name}
@@ -212,11 +244,19 @@ export default function FranchiseExplorePage() {
                     
                     <div className="flex flex-col gap-0.5 md:gap-2">
                       <div className="flex justify-between items-center text-[9px] md:text-xs">
-                        <span className="text-slate-400 font-medium">평균매출</span>
-                        <span className={`font-bold ${sortBy === 'default' ? 'text-indigo-300' : 'text-white'}`}>
+                        <span className="text-slate-400 font-medium">연평균 매출</span>
+                        <span className={`font-bold ${sortBy === 'revenue' ? 'text-indigo-300' : 'text-white'}`}>
                           {formatMoney(brand.avgSales)}
                         </span>
                       </div>
+                      
+                      <div className="flex justify-between items-center text-[9px] md:text-xs">
+                        <span className="text-slate-400 font-medium">평당매출</span>
+                        <span className={`font-bold ${sortBy === 'revenuePerPyeong' ? 'text-indigo-300' : 'text-slate-200'}`}>
+                          {formatMoney(brand.avgSalesPerPyeong)}
+                        </span>
+                      </div>
+
                       <div className="flex justify-between items-center text-[9px] md:text-xs">
                         <span className="text-slate-400 font-medium">창업비용</span>
                         <span className={`font-bold ${sortBy === 'startup_asc' ? 'text-indigo-300' : 'text-white'}`}>
@@ -236,7 +276,7 @@ export default function FranchiseExplorePage() {
                     onClick={handleLoadMore}
                     className="inline-flex items-center gap-1 px-6 py-2.5 bg-white border border-slate-300 rounded-full text-slate-600 text-xs md:text-sm font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95"
                   >
-                      더보기 ({visibleCount}/{filteredList.length}) <ChevronDownIcon className="w-3 h-3" />
+                      더보기 ({Math.min(visibleCount, filteredList.length)}/{filteredList.length}) <ChevronDownIcon className="w-3 h-3" />
                   </button>
                </div>
             )}

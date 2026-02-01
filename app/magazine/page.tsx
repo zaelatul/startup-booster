@@ -85,23 +85,28 @@ export default function MagazinePage() {
                 spaceBetween={0} slidesPerView={1}
                 autoplay={{ delay: 5000, disableOnInteraction: false }}
                 pagination={{ clickable: true }} navigation={true} loop={banners.length > 1}
-                // [재수정] 높이 다시 축소 (h-40: 모바일 / h-64: PC)
+                // 높이: 모바일 h-40 / PC h-64
                 className="h-40 md:h-64"
             >
                 {banners.map((banner) => (
                 <SwiperSlide key={banner.id}>
                     <Link href={banner.link_url || '#'} className="relative block h-full w-full group cursor-pointer">
                     <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${banner.image_url})` }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent md:bg-gradient-to-r" />
                     
-                    {/* [재수정] 좁아진 높이에 맞춰 PC 패딩 및 텍스트 크기 축소 */}
-                    <div className="relative z-10 flex h-full flex-col justify-end p-5 md:justify-center md:p-10 md:w-2/3">
-                        <span className="inline-block w-fit mb-1 md:mb-2 rounded-full bg-indigo-600/90 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-bold text-white shadow-sm backdrop-blur-sm">SPECIAL PICK</span>
-                        {/* 폰트 크기 축소: 3xl~4xl -> 2xl~3xl */}
-                        <h2 className="text-base md:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-1 md:mb-3 drop-shadow-md line-clamp-1 md:line-clamp-2">{banner.title}</h2>
-                        {/* 서브텍스트 크기 축소: base~lg -> sm */}
-                        <p className="text-[10px] md:text-sm text-slate-200 mb-3 md:mb-6 opacity-90 line-clamp-1 md:line-clamp-2 leading-relaxed">{banner.subtitle}</p>
-                        <div className="hidden md:block"><span className="inline-flex items-center gap-2 rounded-full bg-white text-slate-900 px-5 py-2.5 text-xs font-bold hover:bg-indigo-50 transition-colors shadow-lg">지금 읽어보기 <ChevronRightIcon className="w-3.5 h-3.5" /></span></div>
+                    {/* ✅ [수정] 그라데이션 제거됨 */}
+                    {/* <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent md:bg-gradient-to-r" /> */}
+                    
+                    {/* ✅ [수정] 텍스트 가독성을 위한 최소한의 그림자만 유지 (필요 없으면 drop-shadow 제거 가능) */}
+                    <div className="relative z-10 flex h-full flex-col justify-end p-5 md:justify-center md:p-10 md:w-2/3 drop-shadow-md">
+                        {/* ✅ [수정] 'SPECIAL PICK' 배지 제거됨 */}
+                        
+                        {/* 폰트 크기 */}
+                        <h2 className="text-base md:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-1 md:mb-3 drop-shadow-lg line-clamp-1 md:line-clamp-2">{banner.title}</h2>
+                        
+                        {/* 서브 텍스트 */}
+                        <p className="text-[10px] md:text-sm text-slate-100 mb-3 md:mb-6 opacity-90 line-clamp-1 md:line-clamp-2 leading-relaxed font-medium drop-shadow-md">{banner.subtitle}</p>
+                        
+                        {/* ✅ [수정] '지금 읽어보기' 버튼 제거됨 */}
                     </div>
                     </Link>
                 </SwiperSlide>
@@ -121,13 +126,13 @@ export default function MagazinePage() {
           <div className="grid grid-cols-3 gap-3 md:gap-6 lg:gap-8">
             {visibleArticles.map((article) => (
                 <Link key={article.id} href={`/magazine/${article.id}`} className="group flex flex-col h-full bg-white rounded-xl md:rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-                {/* 썸네일 높이 축소 (h-28) */}
+                {/* 썸네일 높이 (h-28) */}
                 <div className="relative h-28 md:h-52 w-full overflow-hidden bg-slate-200">
                     <img src={article.thumbnailUrl} alt={article.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute top-2 left-2 md:top-4 md:left-4"><span className="inline-block px-1.5 py-0.5 md:px-3 md:py-1 rounded md:rounded-lg bg-white/95 text-[8px] md:text-[10px] font-bold text-slate-900 shadow-sm backdrop-blur-md">{article.category}</span></div>
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 </div>
-                {/* 패딩 및 텍스트 크기 축소 */}
+                {/* 패딩 및 텍스트 */}
                 <div className="flex flex-col flex-1 p-3 md:p-6">
                     <h3 className="text-xs md:text-lg font-bold text-slate-900 leading-snug mb-1 md:mb-3 line-clamp-2 group-hover:text-indigo-600 transition-colors h-8 md:h-auto">{article.title}</h3>
                     <p className="text-[10px] md:text-sm text-slate-500 line-clamp-2 mb-2 md:mb-5 flex-1 leading-relaxed hidden md:block">{article.description}</p>

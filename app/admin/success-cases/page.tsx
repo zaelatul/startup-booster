@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon, PhotoIcon, ChartBarIcon, 
   CloudArrowUpIcon, PlusIcon, ChatBubbleBottomCenterTextIcon
 } from '@heroicons/react/24/solid';
+import { FRANCHISE_CATEGORIES } from '@/lib/franchise-data'; // 업종 데이터 가져오기
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,11 +36,26 @@ export default function AdminSuccessCasesPage() {
 
   useEffect(() => { fetchList(); }, []);
 
-  // [수정] 파일명 난수화 함수 (한글 깨짐 방지)
+  // 파일명 난수화 함수 (한글 깨짐 방지)
   const generateSafeFileName = (originalName: string) => {
     const fileExt = originalName.split('.').pop();
     const randomString = Math.random().toString(36).substring(2, 10);
     return `${Date.now()}_${randomString}.${fileExt}`;
+  };
+
+  // 삭제 핸들러 함수
+  const handleDelete = async (id: number) => {
+    if (window.confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) {
+      const { error } = await supabase.from('success_cases').delete().eq('id', id);
+      
+      if (error) {
+        alert('삭제 중 오류가 발생했습니다.');
+        console.error(error);
+      } else {
+        alert('삭제되었습니다.');
+        fetchList(); // 목록 새로고침
+      }
+    }
   };
 
   const handleEdit = (item: any) => {
@@ -55,6 +71,7 @@ export default function AdminSuccessCasesPage() {
       id: item.id,
       brand_name: item.brand_name,
       branch_name: item.branch_name,
+      category: item.category || '기타',
       area: item.area,
       startup_year: item.startup_year,
       monthly_sales: item.monthly_sales,
@@ -80,9 +97,9 @@ export default function AdminSuccessCasesPage() {
       ft_trafficLevel: ft.trafficLevel || '보통', 
       ft_competitors: ft.competitors || 0,
       ft_competitorLevel: ft.competitorLevel || '보통',
-      ft_comment: ft.comment,
+      ft_comment: ft.comment, 
       ft_week: ft.weekRatio?.week || 70,
-      ft_weekend: ft.weekRatio?.weekend || 30,
+      ft_weekend: ft.weekRatio?.weekend || 30, 
       ft_day_mon: day('월'), ft_day_tue: day('화'), ft_day_wed: day('수'),
       ft_day_thu: day('목'), ft_day_fri: day('금'), ft_day_sat: day('토'), ft_day_sun: day('일'),
       ft_time_05: time('05~09'), ft_time_09: time('09~12'), ft_time_12: time('12~14'),
@@ -93,6 +110,7 @@ export default function AdminSuccessCasesPage() {
 
   const handleCreate = () => {
     setForm({ 
+        category: '기타',
         store_images: [], menu_images: [], 
         q1:0, q2:0, q3:0, q4:0, 
         ft_dailyAvg:0, ft_competitors:0,
@@ -103,12 +121,14 @@ export default function AdminSuccessCasesPage() {
     setIsEditing(true);
   }
 
+  // ✅ [수정완료] 에러 체크 기능이 포함된 저장 함수
   const handleSave = async () => {
     if (!form.brand_name) return alert('브랜드명은 필수입니다!');
 
     const payload = {
       brand_name: form.brand_name,
       branch_name: form.branch_name,
+      category: form.category,
       area: form.area,
       startup_year: form.startup_year,
       monthly_sales: Number(form.monthly_sales),
@@ -150,11 +170,24 @@ export default function AdminSuccessCasesPage() {
       }
     };
 
+    let error; // 에러 변수 선언
+
     if (form.id) {
-      await supabase.from('success_cases').update(payload).eq('id', form.id);
+      // 수정 (Update)
+      const res = await supabase.from('success_cases').update(payload).eq('id', form.id);
+      error = res.error;
     } else {
-      await supabase.from('success_cases').insert([payload]);
+      // 신규 (Insert)
+      const res = await supabase.from('success_cases').insert([payload]);
+      error = res.error;
     }
+
+    // 🛑 에러 발생 시 알림 후 중단
+    if (error) {
+        console.error("저장 에러:", error);
+        return alert(`저장 실패! 에러 내용을 확인하세요:\n${error.message}\n(힌트: DB 컬럼 타입이나 필수값이 맞는지 확인해보세요)`);
+    }
+
     alert('✅ 저장되었습니다!');
     setIsEditing(false);
     fetchList();
@@ -169,7 +202,6 @@ export default function AdminSuccessCasesPage() {
     if (target === 'url') {
        if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
-          // [수정] 파일명 난수화 적용
           const fileName = `success-cases/${generateSafeFileName(file.name)}`;
           const { data } = await supabase.storage.from('uploads').upload(fileName, file);
           const { data: publicData } = supabase.storage.from('uploads').getPublicUrl(fileName);
@@ -195,6 +227,21 @@ export default function AdminSuccessCasesPage() {
           <section className="grid grid-cols-2 gap-6">
             <Input label="브랜드명" value={form.brand_name} onChange={(v:any) => setForm({...form, brand_name: v})} />
             <Input label="지점명" value={form.branch_name} onChange={(v:any) => setForm({...form, branch_name: v})} />
+            
+            <div className="flex flex-col gap-1.5 w-full">
+               <label className="text-xs font-bold text-slate-500 ml-1">업종</label>
+               <select 
+                 className="w-full border border-slate-200 bg-slate-50 p-3 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all font-bold text-slate-700"
+                 value={form.category} 
+                 onChange={e => setForm({...form, category: e.target.value})}
+               >
+                 {FRANCHISE_CATEGORIES.slice(1).map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                 ))}
+                 <option value="기타">기타</option>
+               </select>
+            </div>
+
             <Input label="지역 (행정동)" value={form.area} onChange={(v:any) => setForm({...form, area: v})} />
             <Input label="창업년월 (예: 2023.05)" value={form.startup_year} onChange={(v:any) => setForm({...form, startup_year: v})} />
           </section>
@@ -292,7 +339,6 @@ export default function AdminSuccessCasesPage() {
                 <ImageUploader value={form.main_image} onChange={async (e:any) => {
                     if (e.target.files?.[0]) {
                        const file = e.target.files[0];
-                       // [수정] 파일명 난수화
                        const fileName = `success-cases/${generateSafeFileName(file.name)}`;
                        const { data } = await supabase.storage.from('uploads').upload(fileName, file);
                        const { data: publicData } = supabase.storage.from('uploads').getPublicUrl(fileName);
@@ -350,7 +396,12 @@ export default function AdminSuccessCasesPage() {
               <tr key={item.id} className="border-b hover:bg-slate-50 transition-colors">
                 <td className="p-5 pl-8"><div className="font-bold text-slate-900">{item.brand_name}</div></td>
                 <td className="p-5"><div className="font-bold">{item.monthly_sales}</div></td>
-                <td className="p-5 text-right pr-8"><button onClick={() => handleEdit(item)} className="p-2 text-slate-400 hover:text-indigo-600 bg-slate-100 rounded-lg">수정</button></td>
+                <td className="p-5 text-right pr-8">
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => handleEdit(item)} className="p-2 text-slate-400 hover:text-indigo-600 bg-slate-100 rounded-lg">수정</button>
+                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-lg">삭제</button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

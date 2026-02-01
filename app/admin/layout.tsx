@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   HomeIcon, PhotoIcon, ChartBarIcon, 
-  BuildingStorefrontIcon, WrenchScrewdriverIcon, 
-  BookOpenIcon, StarIcon, EnvelopeIcon, ArrowLeftOnRectangleIcon
+  BuildingStorefrontIcon,
+  BookOpenIcon, StarIcon, EnvelopeIcon, ArrowLeftOnRectangleIcon,
+  UserGroupIcon // ✅ [추가] 아이콘 임포트
 } from '@heroicons/react/24/outline';
 
 // 메뉴 리스트
@@ -17,6 +18,8 @@ const MENU = [
   { name: '매거진/콘텐츠', href: '/admin/magazine', icon: BookOpenIcon },
   { name: '배너 관리', href: '/admin/banners', icon: PhotoIcon },
   { name: '상담 문의', href: '/admin/inquiries', icon: EnvelopeIcon },
+  // ✅ [추가] 방문자 관리 메뉴
+  { name: '방문자 수 관리', href: '/admin/visitors', icon: UserGroupIcon },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -1,32 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // 1. 라우터(페이지 이동) 도구 가져오기
 import { createClient } from '@supabase/supabase-js';
 import { 
   UserGroupIcon, DocumentTextIcon, 
-  ArrowTrendingUpIcon, BuildingStorefrontIcon 
+  ArrowTrendingUpIcon, BuildingStorefrontIcon,
+  ArrowLeftOnRectangleIcon // 2. 로그아웃 아이콘 가져오기
 } from '@heroicons/react/24/solid';
 
-// Supabase 클라이언트
+// Supabase 클라이언트 설정
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default function AdminDashboard() {
+  const router = useRouter(); // 3. 라우터 사용 준비
+  
+  // 통계 상태 관리
   const [stats, setStats] = useState({
     brands: 0,
     cases: 0,
     magazines: 0
   });
 
+  // 데이터 불러오기
   useEffect(() => {
     async function fetchStats() {
-      // 1. 프랜차이즈 개수 세기
       const { count: brandCount } = await supabase.from('franchises').select('*', { count: 'exact', head: true });
-      // 2. 성공사례 개수 세기
       const { count: caseCount } = await supabase.from('success_cases').select('*', { count: 'exact', head: true });
-      // 3. 매거진 개수 세기
       const { count: magCount } = await supabase.from('magazines').select('*', { count: 'exact', head: true });
 
       setStats({
@@ -38,19 +41,46 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
   
-  // 가상의 방문자 수 (이건 나중에 GA 연동해야 함)
+  // 4. [핵심] 로그아웃 기능 함수
+  const handleLogout = async () => {
+    try {
+      // 아까 만든 쿠키 삭제 API 부르기
+      await fetch('/api/admin-logout', { method: 'POST' }); 
+      
+      // 로그인 페이지로 쫓아내고 새로고침!
+      router.push('/admin/login');
+      router.refresh(); 
+    } catch (error) {
+      console.error('로그아웃 중 오류 발생:', error);
+    }
+  };
+
   const todayVisitors = 1204;
 
   return (
     <div className="space-y-8 animate-fade-in-up">
+      {/* 상단 헤더 영역 */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">관리자 대시보드</h2>
-        <span className="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border shadow-sm">
-          {new Date().toLocaleDateString()} 기준
-        </span>
+        
+        <div className="flex items-center gap-3">
+            {/* 날짜 표시 */}
+            <span className="text-sm text-slate-500 bg-white px-3 py-1.5 rounded-full border shadow-sm">
+              {new Date().toLocaleDateString()} 기준
+            </span>
+            
+            {/* 🔥 5. 여기에 진짜 작동하는 로그아웃 버튼 추가! */}
+            <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-1.5 rounded-full text-sm font-bold transition-colors border border-red-100 shadow-sm"
+            >
+                <ArrowLeftOnRectangleIcon className="w-4 h-4" />
+                로그아웃
+            </button>
+        </div>
       </div>
 
-      {/* 통계 카드 그리드 */}
+      {/* 통계 카드 그리드 (기존 코드 유지) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
           title="총 방문자 수" 
@@ -82,7 +112,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* 하단 영역 */}
+      {/* 하단 바로가기 영역 (기존 코드 유지) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-4">📢 시스템 상태</h3>
@@ -116,7 +146,7 @@ export default function AdminDashboard() {
   );
 }
 
-// 통계 카드 컴포넌트
+// 통계 카드 UI (기존 코드 유지)
 function StatCard({ title, value, trend, icon: Icon, color }: any) {
   const colors: any = {
     indigo: 'bg-indigo-50 text-indigo-600',

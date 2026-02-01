@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
-import { 
-  ChevronDownIcon 
-} from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import RollingBanner from '@/components/home/RollingBanner';
 
 export default function CasesPage() {
@@ -19,12 +17,18 @@ export default function CasesPage() {
     '베이커리', '편의점/마트', '화장품', '미용/뷰티', '의류/패션', '도소매/유통', '서비스/기타'
   ];
 
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // 화면 크기에 따라 초기 노출 개수 설정 (모바일 9개, PC 12개)
+  const getInitialCount = () => {
+    if (typeof window === 'undefined') return 12;
+    return window.innerWidth < 1024 ? 9 : 12;
+  };
 
   useEffect(() => {
     const fetchCases = async () => {
@@ -41,29 +45,36 @@ export default function CasesPage() {
     };
 
     fetchCases();
-    setVisibleCount(6); 
+    setVisibleCount(getInitialCount());
   }, [category]);
 
+  // 더보기 버튼 로직 (모바일 6개, PC 8개 추가)
   const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 6);
+    const isMobile = window.innerWidth < 1024;
+    setVisibleCount((prev) => prev + (isMobile ? 6 : 8));
   };
 
   const formatMoney = (v: number) => {
-    if (!v) return '-';
-    if (v >= 10000) return `${(v/10000).toFixed(1)}억`;
-    return `${(v/1000).toFixed(0)}천만`; 
+    if (!v && v !== 0) return '-';
+    if (v >= 10000) {
+        const eok = (v / 10000).toFixed(1).replace('.0', '');
+        return `${eok}억`;
+    }
+    return `${v.toLocaleString()}만`; 
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
       {/* 1. 홍보 배너 */}
-      <section className="w-full h-[150px] md:h-[220px] overflow-hidden relative bg-slate-900">
-         <div className="absolute inset-0 w-full h-full [&>div]:h-full">
-            <RollingBanner location="main" /> 
-         </div>
-         <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
-      </section>
+      <div className="w-full max-w-6xl mx-auto md:px-6 md:mt-6">
+        <section className="w-full aspect-[1920/500] overflow-hidden relative bg-slate-900 md:rounded-2xl shadow-sm">
+           <div className="absolute inset-0 w-full h-full [&>div]:h-full">
+              <RollingBanner location="main" /> 
+           </div>
+           <div className="absolute inset-0 bg-black/5 pointer-events-none"></div>
+        </section>
+      </div>
 
       {/* 2. 헤더 & 업종 카테고리 */}
       <div className="bg-white pb-4 pt-6 px-4 shadow-sm border-b border-slate-100 sticky top-0 z-30">
@@ -103,13 +114,13 @@ export default function CasesPage() {
         ) : (
           <>
             {/* 3. 리스트 영역 */}
-            <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-6">
+            {/* ✅ [유지] grid-cols-3 (모바일 3열) / gap-1.5 (좁은 간격) */}
+            <div className="grid grid-cols-3 lg:grid-cols-4 gap-1.5 md:gap-6">
               {cases.slice(0, visibleCount).map((item) => (
                 <Link 
                   key={item.id} 
                   href={`/cases/${item.id}`}
-                  // [수정] 배경색: bg-white -> bg-[#1e293b] (메탈 그레이)
-                  className="group bg-[#1e293b] rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-700/50 hover:shadow-2xl transition-all hover:-translate-y-1 block"
+                  className="group bg-[#1e293b] rounded-lg md:rounded-2xl overflow-hidden shadow-lg border border-slate-700/50 hover:shadow-2xl transition-all hover:-translate-y-1 block"
                 >
                   <div className="relative w-full aspect-[4/3] bg-slate-800 overflow-hidden">
                     {item.main_image ? (
@@ -121,33 +132,36 @@ export default function CasesPage() {
                         sizes="(max-width: 768px) 33vw, 25vw"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[9px] md:text-sm text-slate-500">No Image</div>
+                      <div className="w-full h-full flex items-center justify-center text-[10px] md:text-sm text-slate-500 bg-slate-800">No Image</div>
                     )}
-                    <div className="absolute top-1 left-1 md:top-3 md:left-3">
-                        <span className="bg-black/60 backdrop-blur-sm text-white px-1.5 py-0.5 md:px-2.5 md:py-1 rounded text-[8px] md:text-xs font-bold border border-white/10">
+                    <div className="absolute top-1.5 left-1.5 md:top-3 md:left-3 z-10">
+                        <span className="bg-black/60 backdrop-blur-sm text-white px-1 py-0.5 md:px-2.5 md:py-1 rounded text-[8px] md:text-xs font-bold border border-white/10">
                             {item.category || '기타'}
                         </span>
                     </div>
                   </div>
 
-                  <div className="p-2 md:p-5">
-                    <div className="mb-2 md:mb-4">
-                        {/* [수정] 텍스트 색상: text-slate-900 -> text-white */}
+                  <div className="p-1.5 md:p-5">
+                    <div className="mb-1.5 md:mb-4">
                         <h3 className="text-[11px] md:text-xl font-bold text-white leading-tight truncate mb-0.5 md:mb-1">{item.brand_name}</h3>
                         <p className="text-[9px] md:text-sm text-slate-400 truncate">{item.branch_name}</p>
                     </div>
                     
-                    {/* [수정] 매출 박스 배경: bg-slate-50 -> bg-[#0f172a] (더 어두운 색) */}
-                    <div className="bg-[#0f172a] rounded-lg p-1.5 md:p-3 space-y-0.5 md:space-y-1 border border-slate-700/50">
-                        <div className="flex justify-between items-center text-[9px] md:text-sm">
-                            {/* [수정] 텍스트 변경: 매출 -> 매출액 */}
-                            <span className="text-slate-400 font-medium">매출액</span>
-                            <span className="font-bold text-slate-200">{formatMoney(item.monthly_sales)}</span>
+                    {/* ✅ [수정] 텍스트 전체 노출 (월매출, 순이익, 창업비용) */}
+                    {/* 공간 확보를 위해 padding을 줄이고(-tracking) 폰트 사이즈를 축소(text-[8px]) */}
+                    <div className="bg-[#0f172a] rounded md:rounded-lg p-1.5 md:p-3 space-y-1 md:space-y-1.5 border border-slate-700/50">
+                        <div className="flex justify-between items-center text-[8px] md:text-sm">
+                            <span className="text-slate-400 font-medium tracking-tighter shrink-0">월매출</span>
+                            <span className="font-bold text-slate-200 tracking-tight">{formatMoney(item.monthly_sales)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[9px] md:text-sm">
-                            {/* [수정] 텍스트 변경: 수익 -> 순이익 */}
-                            <span className="text-slate-400 font-medium">순이익</span>
-                            <span className="font-extrabold text-emerald-400">{formatMoney(item.net_profit)}</span>
+                        <div className="flex justify-between items-center text-[8px] md:text-sm">
+                            <span className="text-slate-400 font-medium tracking-tighter shrink-0">순이익</span>
+                            <span className="font-extrabold text-emerald-400 tracking-tight">{formatMoney(item.net_profit)}</span>
+                        </div>
+                        {/* ✅ [수정] 창업비용 숨김 해제 (모바일에서도 보임) */}
+                        <div className="flex justify-between items-center text-[8px] md:text-sm border-t border-slate-700 pt-1 mt-1">
+                            <span className="text-slate-500 font-medium tracking-tighter shrink-0">창업비용</span>
+                            <span className="font-bold text-indigo-300 tracking-tight">{formatMoney(item.invest_cost)}</span>
                         </div>
                     </div>
                   </div>
