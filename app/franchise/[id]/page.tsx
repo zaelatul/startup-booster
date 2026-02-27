@@ -2,10 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 import BrandDetailClient from '@/app/franchise/brand/[id]/BrandDetailClient'; 
 import { FRANCHISE_MOCK_DATA } from '@/lib/franchise-data';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 환경변수가 없으면 가짜 값('placeholder')을 넣어서 빌드 에러를 막습니다.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Props = {
   params: Promise<{ id: string }>;

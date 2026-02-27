@@ -1,23 +1,29 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { ReactNode } from 'react';
-import Script from 'next/script'; // 구글 스크립트 로드용 컴포넌트
-// 👇 경로가 만약 에러나면 './components/HeaderMain' 으로 바꿔주세요 (파일 위치에 따라 다름)
+import Script from 'next/script';
 import HeaderMain from '@/components/HeaderMain'; 
-// [기존] 모바일 하단 네비게이션 불러오기
 import MobileNav from '@/components/layout/MobileNav';
-// ✅ [신규 추가] 배경음악 컴포넌트 불러오기
 import BackgroundMusic from '@/components/common/BackgroundMusic';
 
+// ✅ 네이버와 구글의 검색 엔진 최적화(SEO) 및 소유권 확인 설정
 export const metadata: Metadata = {
   title: '창업부스터 - 데이터 기반 창업 플랫폼',
   description: '실제 데이터 기반 상권·프랜차이즈 분석 서비스',
   icons: { icon: '/favicon.ico' },
+  // ✅ 검증 태그: 네이버와 구글 신분증을 여기에 다 모았습니다.
+  verification: {
+    other: {
+      // 네이버 소유 확인
+      'naver-site-verification': 'f531f6db75fbfa314708dd1cb028152a66a75fd0',
+      // 구글 소유 확인 (새로 추가됨)
+      'google-site-verification': 'Z8ikjkn_wLf9HjhanJLA5FieqYCYwt-TvmEDv-Mzj-A',
+    },
+  },
 };
 
 type Props = { children: ReactNode };
 
-// [완료] 엉아의 측정 ID 적용
 const GA_ID = 'G-02PPKDRXCM'; 
 
 export default function RootLayout({ children }: Props) {
@@ -43,20 +49,18 @@ export default function RootLayout({ children }: Props) {
           }}
         />
 
-        {/* ✅ [신규 추가] 배경음악 플레이어 (화면 왼쪽 하단 고정) */}
-        {/* 이 컴포넌트는 위치가 fixed라 어디에 넣어도 상관없지만, 관리가 편하게 맨 위에 둡니다 */}
+        {/* 배경음악 플레이어 */}
         <BackgroundMusic />
 
-        {/* 헤더: 방금 로고 이미지를 적용한 HeaderMain을 불러옵니다 */}
+        {/* 헤더 */}
         <HeaderMain />
         
         {/* 본문 */}
-        {/* [수정] pb-16: 하단 네비게이션 높이만큼 패딩을 줘서 내용 가림 방지 */}
         <main className="w-full pb-16 md:pb-0">
           {children}
         </main>
 
-        {/* [추가] 모바일 하단 네비게이션 (PC에서는 자동으로 숨겨짐) */}
+        {/* 모바일 하단 네비게이션 */}
         <MobileNav />
       </body>
     </html>

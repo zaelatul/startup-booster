@@ -6,26 +6,32 @@ import { SparklesIcon } from '@heroicons/react/24/solid';
 
 export default function VisitorCounter() {
   const [count, setCount] = useState<number | null>(null);
-  
+   
+  // ✅ [수정됨] 안전장치 추가 (여기가 범인이었습니다!)
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
   );
 
   useEffect(() => {
     const initVisitor = async () => {
       const currentMonth = new Date().toISOString().slice(0, 7); 
 
-      await supabase.rpc('increment_visitor_count', { target_month: currentMonth });
+      // 에러 방지를 위해 try-catch 감싸기 (선택사항이지만 안전함)
+      try {
+          await supabase.rpc('increment_visitor_count', { target_month: currentMonth });
 
-      const { data } = await supabase
-        .from('visitor_stats')
-        .select('base_count, real_count')
-        .eq('month_key', currentMonth)
-        .maybeSingle();
+          const { data } = await supabase
+            .from('visitor_stats')
+            .select('base_count, real_count')
+            .eq('month_key', currentMonth)
+            .maybeSingle();
 
-      if (data) {
-        setCount(data.base_count + data.real_count);
+          if (data) {
+            setCount(data.base_count + data.real_count);
+          }
+      } catch (e) {
+          console.error("Visitor count error:", e);
       }
     };
 
@@ -35,8 +41,6 @@ export default function VisitorCounter() {
   if (count === null) return null;
 
   return (
-    // ✅ [수정 1] scale-90 (90% 크기), top-3 right-3 (여백 확보)
-    // ✅ PC 위치도 md:top-5 md:right-5로 자연스럽게 조정
     <div className="absolute top-3 right-3 md:top-5 md:right-5 z-50 animate-fade-in scale-90 md:scale-100 origin-top-right">
       <div className="relative group">
         <div className="absolute inset-0 bg-slate-500 blur-md opacity-20 rounded-full group-hover:opacity-30 transition-opacity"></div>

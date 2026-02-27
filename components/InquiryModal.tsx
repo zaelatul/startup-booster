@@ -18,15 +18,16 @@ export default function InquiryModal({ isOpen, onClose, category = '일반', tar
   const [phone, setPhone] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+   
   // 유저 상태 관리
   const [user, setUser] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // ✅ [수정됨] 환경변수 안전장치 추가! (빌드 에러 방지)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+  
+  const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
   // 모달 열릴 때마다 유저 체크
   useEffect(() => {
@@ -145,7 +146,7 @@ export default function InquiryModal({ isOpen, onClose, category = '일반', tar
                           readOnly // 닉네임은 자동입력이므로 수정 불가 처리 (선택사항)
                         />
                       </div>
-                      
+                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">연락처</label>
                         <input

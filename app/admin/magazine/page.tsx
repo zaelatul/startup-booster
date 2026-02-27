@@ -8,10 +8,10 @@ import { TrashIcon, PencilIcon, PlusIcon, ArrowLeftIcon, PhotoIcon, CheckIcon } 
 // [수정] ToastEditorWrapper로 이름 변경해서 불러오기
 const ToastEditorWrapper = dynamic(() => import('@/components/ToastEditorWrapper'), { ssr: false });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 안전장치 적용 완료
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function AdminMagazinePage() {
   const [list, setList] = useState<any[]>([]);

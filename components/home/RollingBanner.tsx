@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react'; // ✅ useMemo 추가
 import Image from 'next/image';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
@@ -15,13 +15,14 @@ import 'swiper/css/navigation';
 export default function RollingBanner({ location }: { location: string }) {
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+   
   const [zoomBanner, setZoomBanner] = useState<any | null>(null);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // ✅ [수정 1] useMemo로 감싸서 객체가 계속 새로 만들어지는 것 방지 (무한 렌더링 해결!)
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+  ), []);
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -39,7 +40,7 @@ export default function RollingBanner({ location }: { location: string }) {
     };
 
     fetchBanners();
-  }, [location]);
+  }, [location, supabase]); // ✅ supabase가 안정되어서 경고 사라짐
 
   if (loading) return <div className="w-full aspect-[1920/500] bg-slate-100 animate-pulse rounded-lg"></div>;
   if (banners.length === 0) return null;
@@ -66,11 +67,11 @@ export default function RollingBanner({ location }: { location: string }) {
                 <div className="absolute inset-0 z-10">
                     <Image 
                       src={banner.image_url} 
-                      // ✅ [수정] 제목이 없으면 '배너 이미지'라는 기본값 사용 (에러 해결!)
                       alt={banner.title || '배너 이미지'} 
                       fill 
-                      // ✅ [수정] sizes 속성 추가 (경고 해결!)
-                      sizes="100vw"
+                      // ✅ [수정 2] sizes 속성 최적화 (콘솔 경고 해결!)
+                      // 모바일일 땐 100vw, 그 이상일 때도 꽉 차게
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
                       className="object-cover transition-transform duration-700 hover:scale-105"
                       priority 
                     />

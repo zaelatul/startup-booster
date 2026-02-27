@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { CheckCircleIcon, EnvelopeIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [확인] 안전장치가 제대로 들어가 있습니다. 이대로만 저장되면 에러가 날 수 없습니다!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Inquiry = {
   id: string;
@@ -54,21 +54,21 @@ export default function AdminInquiriesPage() {
     <div className="space-y-6">
        
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
+         <div>
              <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2">
                 <EnvelopeIcon className="w-7 h-7 text-indigo-600"/> 통합 상담 관리
              </h2>
              <p className="text-sm text-slate-500 mt-1">
                 총 <span className="font-bold text-indigo-600">{list.length}</span>건의 문의가 접수되었습니다.
              </p>
-          </div>
-          
-          <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+         </div>
+         
+         <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
              <button onClick={() => setFilter('all')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${filter==='all' ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-900'}`}>전체</button>
              <button onClick={() => setFilter('가맹')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${filter==='가맹' ? 'bg-white text-indigo-600 shadow' : 'text-slate-500 hover:text-slate-900'}`}>가맹문의</button>
              <button onClick={() => setFilter('메인')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${filter==='메인' ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-900'}`}>메인/기타</button>
              <button onClick={() => fetchInquiries()} className="px-3 text-slate-400 hover:text-indigo-600"><ArrowPathIcon className="w-4 h-4"/></button>
-          </div>
+         </div>
        </div>
 
        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">

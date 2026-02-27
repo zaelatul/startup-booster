@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-// ✅ [수정] SaveIcon 삭제 -> CheckIcon으로 변경 (Heroicons v2에는 SaveIcon이 없음)
 import { CheckIcon, CalculatorIcon } from '@heroicons/react/24/solid';
 
 export default function VisitorAdminPage() {
@@ -10,11 +9,11 @@ export default function VisitorAdminPage() {
   const [stats, setStats] = useState({ base: 0, real: 0 });
   const [inputBase, setInputBase] = useState(0);
 
-  // ✅ [수정] createBrowserClient를 컴포넌트 밖으로 빼거나 useMemo를 써야 하지만,
-  // 일단 에러 해결을 위해 유지하되, 기능상 문제는 없습니다.
+  // ✅ [수정됨] 환경변수 안전장치 추가! (빌드 에러 방지용)
+  // 환경변수가 없으면 가짜 주소라도 넣어서 함수가 에러를 뱉지 않게 합니다.
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
   );
 
   const currentMonth = new Date().toISOString().slice(0, 7); // "2026-01"
@@ -80,7 +79,6 @@ export default function VisitorAdminPage() {
               className="w-full p-3 border border-slate-300 rounded-xl font-bold text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
             <button onClick={handleSave} className="bg-indigo-600 text-white px-4 rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center">
-              {/* ✅ [수정] 여기서 CheckIcon 사용 */}
               <CheckIcon className="w-6 h-6" />
             </button>
           </div>

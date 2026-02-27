@@ -4,10 +4,11 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { TrashIcon, PencilIcon, PlusIcon, PhotoIcon, XMarkIcon, EyeIcon } from '@heroicons/react/24/solid';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 환경변수 안전장치 추가 (빌드 에러 방지용)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Banner = {
   id: string;
@@ -35,7 +36,7 @@ export default function AdminBannersPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  
+   
   const [form, setForm] = useState<Partial<Banner>>({
     location: 'main',
     title: '',

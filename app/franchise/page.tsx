@@ -1,15 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic'; // ✅ [추가] 다이내믹 임포트 (SSR 방지용)
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, 
   BarChart, CartesianGrid, XAxis, YAxis, Bar, 
   LineChart, Line, ReferenceLine 
 } from 'recharts';
-// 👇 [추가] 방금 만든 리뷰 컴포넌트 가져오기
-import ReviewSection from '@/components/franchise/ReviewSection';
+
+// ✅ [수정] ReviewSection을 dynamic으로 불러와서 서버 빌드 에러 원천 차단! (ssr: false)
+const ReviewSection = dynamic(() => import('@/components/franchise/ReviewSection'), { 
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-slate-400">리뷰를 불러오는 중...</div>
+});
 
 export default function FranchiseDetail() {
+  // ✅ [추가] 차트 렌더링 타이밍 조절용 (Recharts 에러 방지)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // 1. 비용 구조 데이터
   const costData = [
     { name: '가맹비', value: 1000, color: '#3B82F6' }, // Blue-500
@@ -38,7 +50,7 @@ export default function FranchiseDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* 헤더 영역 (기존 코드 유지) */}
+      {/* 헤더 영역 */}
       <div className="bg-white border-b border-gray-100 h-16 flex items-center px-4 sticky top-0 z-50">
          <span className="font-bold text-lg">창업부스터</span>
       </div>
@@ -56,22 +68,27 @@ export default function FranchiseDetail() {
           <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold mb-6 text-gray-900">예상 창업 비용 상세</h2>
             <div className="h-64 relative">
-               <ResponsiveContainer width="100%" height="100%">
-                 <PieChart>
-                   <Pie 
-                     data={costData} 
-                     cx="50%" cy="50%" 
-                     innerRadius={60} outerRadius={80} 
-                     paddingAngle={5} 
-                     dataKey="value"
-                   >
-                     {costData.map((entry, index) => (
-                       <Cell key={`cell-${index}`} fill={entry.color} />
-                     ))}
-                   </Pie>
-                   <Tooltip />
-                 </PieChart>
-               </ResponsiveContainer>
+               {/* ✅ [수정] mounted 체크 후 렌더링 (width 에러 방지) */}
+               {mounted ? (
+                 <ResponsiveContainer width="100%" height="100%">
+                   <PieChart>
+                     <Pie 
+                       data={costData} 
+                       cx="50%" cy="50%" 
+                       innerRadius={60} outerRadius={80} 
+                       paddingAngle={5} 
+                       dataKey="value"
+                     >
+                       {costData.map((entry, index) => (
+                         <Cell key={`cell-${index}`} fill={entry.color} />
+                       ))}
+                     </Pie>
+                     <Tooltip />
+                   </PieChart>
+                 </ResponsiveContainer>
+               ) : (
+                 <div className="w-full h-full bg-slate-50 animate-pulse rounded-full" />
+               )}
                {/* 가운데 총액 표시 */}
                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                  <span className="text-sm text-gray-500">총 예상 비용</span>
@@ -98,19 +115,23 @@ export default function FranchiseDetail() {
             <h2 className="text-lg font-bold mb-2 text-gray-900">매출 분포 (상위 vs 하위)</h2>
             <p className="text-xs text-gray-500 mb-6 text-right">* 가맹점 월 평균 매출 기준</p>
             <div className="flex-grow min-h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={distributionData} margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
-                  <Tooltip cursor={{fill: 'transparent'}} formatter={(value: number) => `${value.toLocaleString()}만원`} />
-                  <Bar dataKey="value" barSize={30} radius={[0, 5, 5, 0]}>
-                    {distributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : index === 2 ? '#94A3B8' : '#64748B'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {mounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={distributionData} margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
+                    <Tooltip cursor={{fill: 'transparent'}} formatter={(value: number) => `${value.toLocaleString()}만원`} />
+                    <Bar dataKey="value" barSize={30} radius={[0, 5, 5, 0]}>
+                      {distributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : index === 2 ? '#94A3B8' : '#64748B'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-full bg-slate-50 animate-pulse rounded-lg" />
+              )}
             </div>
             <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-lg text-center font-medium">
                상위 20% 매장은 평균 대비 <span className="font-bold">1.6배</span> 높은 매출을 기록하고 있습니다.
@@ -126,22 +147,25 @@ export default function FranchiseDetail() {
              <span className="text-xs text-gray-500">* 점선은 전년도 동일 평균을 나타냅니다.</span>
           </div>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000}천`} />
-                <Tooltip formatter={(value: number) => `${value.toLocaleString()}만원`} />
-                {/* 기준선 (점선) */}
-                <ReferenceLine y={3000} stroke="red" strokeDasharray="3 3" label={{ position: 'right', value: '손익분기점', fill: 'red', fontSize: 12 }} />
-                <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={3} activeDot={{ r: 8 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={salesTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000}천`} />
+                  <Tooltip formatter={(value: number) => `${value.toLocaleString()}만원`} />
+                  {/* 기준선 (점선) */}
+                  <ReferenceLine y={3000} stroke="red" strokeDasharray="3 3" label={{ position: 'right', value: '손익분기점', fill: 'red', fontSize: 12 }} />
+                  <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={3} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full bg-slate-50 animate-pulse rounded-lg" />
+            )}
           </div>
         </section>
 
-        {/* 👇 [핵심] 4. 리뷰 섹션 추가 (여기 꽂았습니다!) */}
-        {/* franchiseId는 실제로는 페이지 URL에서 받아와야 하지만, 일단 'mega-coffee'로 고정 */}
+        {/* 4. 리뷰 섹션 (Dynamic Import로 서버 빌드 에러 회피) */}
         <ReviewSection franchiseId="mega-coffee" />
 
         {/* 5. 하단 CTA */}

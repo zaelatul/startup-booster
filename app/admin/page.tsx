@@ -1,23 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // 1. 라우터(페이지 이동) 도구 가져오기
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { 
   UserGroupIcon, DocumentTextIcon, 
   ArrowTrendingUpIcon, BuildingStorefrontIcon,
-  ArrowLeftOnRectangleIcon // 2. 로그아웃 아이콘 가져오기
+  ArrowLeftOnRectangleIcon 
 } from '@heroicons/react/24/solid';
 
-// Supabase 클라이언트 설정
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 빌드 에러 방지용 안전장치 추가!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function AdminDashboard() {
-  const router = useRouter(); // 3. 라우터 사용 준비
-  
+  const router = useRouter(); 
+   
   // 통계 상태 관리
   const [stats, setStats] = useState({
     brands: 0,
@@ -40,8 +40,8 @@ export default function AdminDashboard() {
     }
     fetchStats();
   }, []);
-  
-  // 4. [핵심] 로그아웃 기능 함수
+   
+  // 로그아웃 기능 함수
   const handleLogout = async () => {
     try {
       // 아까 만든 쿠키 삭제 API 부르기
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
               {new Date().toLocaleDateString()} 기준
             </span>
             
-            {/* 🔥 5. 여기에 진짜 작동하는 로그아웃 버튼 추가! */}
+            {/* 로그아웃 버튼 */}
             <button 
                 onClick={handleLogout}
                 className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-1.5 rounded-full text-sm font-bold transition-colors border border-red-100 shadow-sm"
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 통계 카드 그리드 (기존 코드 유지) */}
+      {/* 통계 카드 그리드 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
           title="총 방문자 수" 
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* 하단 바로가기 영역 (기존 코드 유지) */}
+      {/* 하단 바로가기 영역 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-4">📢 시스템 상태</h3>
@@ -131,11 +131,11 @@ export default function AdminDashboard() {
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
            <h3 className="text-lg font-bold text-slate-900 mb-4">🚀 빠른 바로가기</h3>
            <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors group">
+              <button onClick={() => router.push('/admin/inquiries')} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors group">
                  <span className="block text-xs font-bold text-slate-400 mb-1">상담 관리</span>
                  <span className="font-bold text-slate-700 group-hover:text-indigo-600">미답변 문의 확인 &rarr;</span>
               </button>
-              <button className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors group">
+              <button onClick={() => router.push('/admin/magazine')} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors group">
                  <span className="block text-xs font-bold text-slate-400 mb-1">콘텐츠</span>
                  <span className="font-bold text-slate-700 group-hover:text-indigo-600">새 매거진 글쓰기 &rarr;</span>
               </button>
@@ -146,7 +146,7 @@ export default function AdminDashboard() {
   );
 }
 
-// 통계 카드 UI (기존 코드 유지)
+// 통계 카드 UI
 function StatCard({ title, value, trend, icon: Icon, color }: any) {
   const colors: any = {
     indigo: 'bg-indigo-50 text-indigo-600',

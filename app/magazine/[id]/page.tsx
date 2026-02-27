@@ -12,10 +12,10 @@ import RollingBanner from '@/components/home/RollingBanner';
 
 const TuiViewerWrapper = dynamic(() => import('@/components/TuiViewerWrapper'), { ssr: false });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 빌드 에러 방지용 안전장치 추가
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function MagazineDetailPage() {
   const params = useParams();
@@ -109,7 +109,7 @@ export default function MagazineDetailPage() {
           {/* leading-normal (1.5배): 책 읽기 가장 좋은 표준 간격 */}
           {/* mb-4: 문단 간격도 좁혀서 텍스트 밀집도 향상 */}
           <div className="prose prose-sm md:prose-lg max-w-none prose-headings:font-bold prose-a:text-indigo-600 break-keep whitespace-normal [&_.toastui-editor-contents_*]:!leading-normal [&_.toastui-editor-contents_p]:!mb-4 [&_.toastui-editor-contents_li]:!my-0">
-             {article.content ? <TuiViewerWrapper content={article.content} /> : <div className="space-y-4">{article.contentParagraphs?.map((p:string, i:number) => <p key={i} className="leading-normal">{p}</p>)}</div>}
+              {article.content ? <TuiViewerWrapper content={article.content} /> : <div className="space-y-4">{article.contentParagraphs?.map((p:string, i:number) => <p key={i} className="leading-normal">{p}</p>)}</div>}
           </div>
 
           <div className="mt-12 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">

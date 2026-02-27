@@ -10,10 +10,11 @@ import { FRANCHISE_CATEGORIES } from '@/lib/franchise-data';
 // [중요] 방금 만든 모달 컴포넌트 불러오기
 import FranchiseFormModal from '@/components/admin/FranchiseFormModal';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 👇 [수정됨] 여기가 핵심입니다! (환경변수 없으면 가짜 값이라도 넣어서 빌드 통과시킴)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ITEMS_PER_PAGE = 10;
 

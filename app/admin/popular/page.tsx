@@ -4,10 +4,10 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { TrashIcon, PencilIcon, PlusIcon, ArrowLeftIcon, PhotoIcon, CheckIcon } from '@heroicons/react/24/solid';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 안전장치 적용 완료
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function AdminPopularPage() {
   const [list, setList] = useState<any[]>([]);

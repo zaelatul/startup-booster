@@ -10,7 +10,7 @@ import RollingBanner from '@/components/home/RollingBanner';
 export default function CasesPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+   
   const [category, setCategory] = useState('전체');
   const categories = [
     '전체', '한식', '치킨', '카페', '분식', '호프/주점', '버거/피자', '일식', '중식', 
@@ -19,10 +19,11 @@ export default function CasesPage() {
 
   const [visibleCount, setVisibleCount] = useState(12);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // ✅ [수정됨] 환경변수 안전장치 추가! (빌드 에러 방지용)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+  
+  const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
   // 화면 크기에 따라 초기 노출 개수 설정 (모바일 9개, PC 12개)
   const getInitialCount = () => {

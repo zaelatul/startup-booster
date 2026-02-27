@@ -1,78 +1,84 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
-import { createClient } from '@supabase/supabase-js';
 
-// Supabase 클라이언트
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-interface Props {
+export default function ToastEditorWrapper({
+  initialValue,
+  onChange,
+  height = '400px',
+}: {
   initialValue?: string;
-  onChange: (value: string) => void;
-}
-
-export default function ToastEditorWrapper({ initialValue, onChange }: Props) {
+  onChange?: (value: string) => void;
+  height?: string;
+}) {
   const editorRef = useRef<Editor>(null);
+  const [ready, setReady] = useState(false);
 
-  const handleChange = () => {
-    if (editorRef.current) {
-      const instance = editorRef.current.getInstance();
-      onChange(instance.getHTML());
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  const supabase = useMemo(
+    () =>
+      createBrowserClient(
+        supabaseUrl || 'https://placeholder.supabase.co',
+        supabaseAnonKey || 'placeholder-key'
+      ),
+    [supabaseUrl, supabaseAnonKey]
+  );
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  const uploadImage = async (file: File) => {
+    // ✅ env 없으면 업로드 자체를 막고, 에디터는 정상 동작
+    if (!supabaseUrl || !supabaseAnonKey) {
+      alert('Supabase 환경변수가 설정되지 않아 이미지 업로드를 진행할 수 없습니다.');
+      return '';
     }
-  };
 
-  // [핵심] 이미지 업로드 로직 (Supabase 'uploads' 버킷 연동)
-  const onAddImageBlob = async (blob: Blob | File, callback: (url: string, altText: string) => void) => {
-    try {
-      const file = blob as File;
-      // 파일명 한글 깨짐 방지 및 고유화
-      const fileName = `editor/${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `magazine/${fileName}`;
 
-      // 1. Supabase Storage에 업로드 (버킷명: 'uploads')
-      const { error: uploadError } = await supabase.storage
-        .from('uploads') 
-        .upload(fileName, file);
+    const { error } = await supabase.storage.from('images').upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
 
-      if (uploadError) throw uploadError;
-
-      // 2. 공개 URL 가져오기
-      const { data } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
-
-      // 3. 에디터에 이미지 삽입
-      callback(data.publicUrl, 'image');
-
-    } catch (error) {
+    if (error) {
       console.error('이미지 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다.');
+      return '';
     }
+
+    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+    return data.publicUrl;
   };
+
+  if (!ready) return null;
 
   return (
     <Editor
       ref={editorRef}
-      initialValue={initialValue || '내용을 입력하세요.'}
+      initialValue={initialValue || ''}
       previewStyle="vertical"
-      height="500px"
+      height={height}
       initialEditType="wysiwyg"
       useCommandShortcut={true}
-      onChange={handleChange}
       hooks={{
-        addImageBlobHook: onAddImageBlob, // 훅 연결
+        addImageBlobHook: async (blob, callback) => {
+          const url = await uploadImage(blob as File);
+          if (url) callback(url, 'image');
+        },
       }}
-      toolbarItems={[
-        ['heading', 'bold', 'italic', 'strike'],
-        ['hr', 'quote'],
-        ['ul', 'ol', 'task', 'indent', 'outdent'],
-        ['table', 'image', 'link'],
-        ['code', 'codeblock']
-      ]}
+      onChange={() => {
+        const instance = editorRef.current?.getInstance();
+        const markdown = instance?.getMarkdown() || '';
+        onChange?.(markdown);
+      }}
     />
   );
 }

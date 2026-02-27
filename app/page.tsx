@@ -1,6 +1,9 @@
-'use client';
+'use client'; // 👈 [중요] 이게 무조건 맨 위에 있어야 합니다!
 
-import { useRef, useState, useEffect } from 'react';
+// ✅ [이동] dynamic 설정은 import 아래로 내려도 작동합니다.
+export const dynamic = 'force-dynamic';
+
+import { useRef, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import RollingBanner from '@/components/home/RollingBanner';
@@ -13,13 +16,12 @@ import {
   LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon
 } from '@heroicons/react/24/solid';
 import { createBrowserClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 
 export default function Home() {
   const caseRef = useRef<HTMLDivElement>(null);
   const popularRef = useRef<HTMLDivElement>(null);
   const magazineRef = useRef<HTMLDivElement>(null);
-  
+   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inquiryCategory, setInquiryCategory] = useState('메인');
 
@@ -28,11 +30,12 @@ export default function Home() {
   const [magazines, setMagazines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
+  // ✅ useMemo로 감싸서 성능 향상
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+  ), []);
+   
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -47,7 +50,7 @@ export default function Home() {
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [supabase]);
 
   const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
     if (ref.current) {
@@ -55,7 +58,7 @@ export default function Home() {
       ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
-  
+   
   const formatMoney = (v: any) => {
     if (!v) return '-';
     if (v >= 10000) return `${(v/10000).toFixed(1)}억`;
@@ -71,65 +74,64 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50">
       
       {isModalOpen && (
-        <InquiryPopup title={inquiryCategory === '제안' ? '서비스 제안하기' : '궁금한 점 문의하기'} category={inquiryCategory} onClose={() => setIsModalOpen(false)} />
+        <InquiryPopup 
+            title={inquiryCategory === '제안' ? '서비스 제안하기' : '궁금한 점 문의하기'} 
+            category={inquiryCategory} 
+            onClose={() => setIsModalOpen(false)} 
+            supabase={supabase} 
+        />
       )}
 
-      {/* 1. 메인 히어로 (초소형 콤팩트 사이즈 적용) */}
+      {/* 1. 메인 히어로 */}
       <section className="w-full relative overflow-hidden bg-[#0F172A]">
-         <VisitorCounter />
+          <VisitorCounter />
 
-         {/* 배경 데코레이션 */}
-         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+          {/* 배경 데코레이션 */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-900/20 rounded-full blur-[100px] pointer-events-none"></div>
 
-         {/* ✅ [수정 1] 상하 여백 대폭 축소: pt-6 pb-10 (모바일), md:py-10 (PC) */}
-         <div className="mx-auto max-w-6xl px-5 pt-6 pb-10 md:py-10 relative z-10">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-0 md:gap-16">
-               
-               {/* [PC] 텍스트 영역 / [모바일] 하단 겹침 */}
-               {/* ✅ [수정 2] 모바일에서 -mt-12로 더 끌어올려 간섭 효과 강화 */}
-               <div className="flex-1 text-center md:text-left w-full order-2 md:order-1 relative z-20 -mt-12 md:mt-0">
-                  <h1 className="text-2xl md:text-5xl font-extrabold text-white leading-tight mb-2 md:mb-6 drop-shadow-xl">
-                     데이터로 증명된<br />
-                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">창업 성공의 지름길</span>
-                  </h1>
-                  <p className="text-slate-300 text-xs md:text-lg mb-5 leading-relaxed font-medium break-keep drop-shadow-md">
-                     실제 데이터와 정밀 분석으로<br className="md:hidden" /> 예비 사장님의 성공적인 시작을 함께합니다.
-                  </p>
-                  
-                  <div className="flex justify-center md:justify-start gap-3">
-                     <Link href="/magazine" className="group px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-white text-white hover:text-indigo-600 font-bold text-xs md:text-sm transition-all shadow-lg border border-transparent hover:border-indigo-600 flex items-center gap-2">
-                        <BookOpenIcon className="w-4 h-4 group-hover:text-indigo-600" /> 창업매거진
-                     </Link>
-                     <Link href="/mbti" className="group px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-white text-white hover:text-slate-900 font-bold text-xs md:text-sm transition-all flex items-center gap-2 shadow-lg border border-slate-700 hover:border-slate-200">
-                        <SparklesIcon className="w-4 h-4 text-yellow-400" /> 창업 MBTI
-                     </Link>
-                  </div>
-               </div>
+          <div className="mx-auto max-w-6xl px-5 pt-6 pb-10 md:py-10 relative z-10">
+             <div className="flex flex-col md:flex-row items-center justify-between gap-0 md:gap-16">
+                
+                {/* [PC] 텍스트 영역 / [모바일] 하단 겹침 */}
+                <div className="flex-1 text-center md:text-left w-full order-2 md:order-1 relative z-20 -mt-12 md:mt-0">
+                   <h1 className="text-2xl md:text-5xl font-extrabold text-white leading-tight mb-2 md:mb-6 drop-shadow-xl">
+                      데이터로 증명된<br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">창업 성공의 지름길</span>
+                   </h1>
+                   <p className="text-slate-300 text-xs md:text-lg mb-5 leading-relaxed font-medium break-keep drop-shadow-md">
+                      실제 데이터와 정밀 분석으로<br className="md:hidden" /> 예비 사장님의 성공적인 시작을 함께합니다.
+                   </p>
+                   
+                   <div className="flex justify-center md:justify-start gap-3">
+                      <Link href="/magazine" className="group px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-white text-white hover:text-indigo-600 font-bold text-xs md:text-sm transition-all shadow-lg border border-transparent hover:border-indigo-600 flex items-center gap-2">
+                         <BookOpenIcon className="w-4 h-4 group-hover:text-indigo-600" /> 창업매거진
+                      </Link>
+                      <Link href="/mbti" className="group px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-white text-white hover:text-slate-900 font-bold text-xs md:text-sm transition-all flex items-center gap-2 shadow-lg border border-slate-700 hover:border-slate-200">
+                         <SparklesIcon className="w-4 h-4 text-yellow-400" /> 창업 MBTI
+                      </Link>
+                   </div>
+                </div>
 
-               {/* [PC] 이미지 영역 / [모바일] 상단 */}
-               {/* ✅ [수정 3] PC 이미지 최대 너비 축소: max-w-[480px] -> max-w-[380px] */}
-               <div className="flex-1 w-full max-w-full md:max-w-[380px] order-1 md:order-2">
-                  {/* ✅ [수정 4] 모바일 이미지 높이 축소: h-52 -> h-44 (176px) */}
-                  <div className="relative w-full h-44 md:h-auto md:aspect-square rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-700/50 rotate-1 hover:rotate-0 transition-transform duration-700 animate-float">
-                     <Image 
-                         src="/images/franchise-hero.jpg" 
-                         alt="성공적인 창업" 
-                         fill 
-                         className="object-cover object-center"
-                         priority 
-                     />
-                     <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-transparent pointer-events-none opacity-80 md:opacity-40"></div>
-                  </div>
-               </div>
-            </div>
+                {/* [PC] 이미지 영역 / [모바일] 상단 */}
+                <div className="flex-1 w-full max-w-full md:max-w-[380px] order-1 md:order-2">
+                   <div className="relative w-full h-44 md:h-auto md:aspect-square rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-700/50 rotate-1 hover:rotate-0 transition-transform duration-700 animate-float">
+                      <Image 
+                          src="/images/franchise-hero.jpg" 
+                          alt="성공적인 창업" 
+                          fill 
+                          className="object-cover object-center"
+                          priority 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-transparent pointer-events-none opacity-80 md:opacity-40"></div>
+                   </div>
+                </div>
+             </div>
          </div>
       </section>
 
-      {/* 2. 핵심 메뉴 (Stack & Overlap 유지) */}
+      {/* 2. 핵심 메뉴 */}
       <main className="max-w-6xl mx-auto px-4 -mt-8 relative z-30 space-y-12 md:space-y-16 pb-20">
         <section className="grid grid-cols-2 gap-3 md:gap-6">
-            
-            {/* 성공사례 카드 */}
             <Link href="/cases" className="group relative overflow-hidden rounded-2xl md:rounded-3xl bg-[#1E293B] p-5 md:p-8 text-white shadow-xl border border-slate-700 transition-all hover:-translate-y-1 hover:shadow-2xl hover:border-indigo-500/50">
                 <div className="absolute top-0 right-0 p-3 md:p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CheckCircleIcon className="w-20 h-20 md:w-32 md:h-32 text-indigo-400" /></div>
                 <div className="relative z-10 flex flex-col h-full justify-between">
@@ -142,7 +144,6 @@ export default function Home() {
                 </div>
             </Link>
 
-            {/* 프랜차이즈 분석 카드 */}
             <Link href="/franchise/explore" className="group relative overflow-hidden rounded-2xl md:rounded-3xl bg-[#1E293B] p-5 md:p-8 text-white shadow-xl border border-slate-700 transition-all hover:-translate-y-1 hover:shadow-2xl hover:border-purple-500/50">
                  <div className="absolute top-0 right-0 p-3 md:p-4 opacity-10 group-hover:opacity-20 transition-opacity"><ChartBarIcon className="w-20 h-20 md:w-32 md:h-32 text-purple-400" /></div>
                 <div className="relative z-10 flex flex-col h-full justify-between">
@@ -156,8 +157,6 @@ export default function Home() {
             </Link>
         </section>
 
-        {/* ... (이하 나머지 섹션은 기존 코드와 100% 동일하므로 생략) ... */}
-        {/* 기존 섹션들 (성공사례 리스트, 인기 브랜드, 배너, 매거진 등) 그대로 유지 */}
         <section className="relative group/section">
             <div className="flex items-end justify-between mb-3 md:mb-6 px-1">
                 <div><h3 className="text-base md:text-2xl font-bold text-slate-900">프랜차이즈 실제 성공사례</h3><p className="text-[10px] md:text-sm text-slate-500 mt-0.5 md:mt-1">검증된 사장님들의 이야기</p></div>
@@ -178,9 +177,11 @@ export default function Home() {
                                 </div>
                                 <div className="p-2 md:p-5 space-y-1 md:space-y-0">
                                     <div className="mb-3 md:mb-4 hidden md:block"><h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors leading-tight mb-1">{item.brand_name}</h3><span className="text-xs text-slate-400">{item.branch_name}</span></div>
-                                    <div className="md:space-y-2 md:bg-slate-700/50 md:p-4 md:rounded-2xl border border-transparent md:border-slate-600/30">
-                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">매출</span><span className="font-bold text-slate-200">{formatMoney(item.monthly_sales)}</span></div>
-                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">순수익</span><span className="font-bold text-emerald-400">{formatMoney(item.net_profit)}</span></div>
+                                    {/* ✅ [수정] 목록 페이지와 동일한 3단 구성 (월매출, 순이익, 창업비용) 적용 */}
+                                    <div className="space-y-1.5 md:space-y-2 md:bg-slate-700/50 md:p-4 md:rounded-2xl border border-transparent md:border-slate-600/30">
+                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">월매출</span><span className="font-bold text-slate-200">{formatMoney(item.monthly_sales)}</span></div>
+                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">순이익</span><span className="font-bold text-emerald-400">{formatMoney(item.net_profit)}</span></div>
+                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">창업비용</span><span className="font-bold text-slate-200">{formatMoney(item.invest_cost)}</span></div>
                                     </div>
                                 </div>
                             </Link>
@@ -192,7 +193,7 @@ export default function Home() {
         </section>
 
         <section className="relative group/section py-4 md:py-10 border-y border-slate-100 md:border-slate-200">
-            <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-6 px-1"><FireIcon className="w-4 h-4 md:w-6 md:h-6 text-red-500" /><div><h3 className="text-base md:text-2xl font-bold text-slate-900">요즘 뜨는 인기 브랜드</h3><p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">많이 찾아본 브랜드 TOP 10</p></div></div>
+            <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-6 px-1"><FireIcon className="w-4 h-4 md:w-6 md:h-6 text-red-500" /><div><h3 className="text-base md:text-2xl font-bold text-slate-900">관심 많은 인기 브랜드</h3><p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">많이 찾아본 브랜드 TOP 10</p></div></div>
             {loading ? <div className="h-20 md:h-40 flex items-center justify-center text-xs md:text-sm text-slate-400">로딩 중...</div> : popularFranchises.length === 0 ? <div className="h-20 md:h-40 flex items-center justify-center text-xs md:text-sm text-slate-400">데이터 없음</div> : (
                 <div className="relative">
                     <button onClick={() => scroll(popularRef, 'left')} className="absolute -left-3 md:-left-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white text-slate-600 shadow-md border border-slate-100 hidden md:flex items-center justify-center hover:scale-110"><ChevronLeftIcon className="w-4 h-4 md:w-6 md:h-6" /></button>
@@ -208,14 +209,14 @@ export default function Home() {
                                 <div className="p-2 md:p-5 space-y-1 md:space-y-0">
                                     <div className="mb-3 md:mb-4 hidden md:block"><h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors leading-tight mb-1">{brand.name}</h3><span className="text-xs text-slate-400">{brand.slogan || brand.category}</span></div>
                                     <div className="md:space-y-2 md:bg-slate-700/50 md:p-4 md:rounded-2xl border border-transparent md:border-slate-600/30">
-                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">평균매출</span><span className="font-bold text-slate-200">{formatMoney(brand.avg_sales)}</span></div>
+                                        <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">연평균매출</span><span className="font-bold text-slate-200">{formatMoney(brand.avg_sales)}</span></div>
                                         <div className="flex justify-between items-center text-[9px] md:text-sm"><span className="text-slate-400">창업비용</span><span className="font-bold text-slate-300">{formatMoney(brand.startup_cost)}</span></div>
                                     </div>
                                 </div>
                             </Link>
                         ))}
                     </div>
-                    <button onClick={() => scroll(popularRef, 'right')} className="absolute -right-3 md:-right-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white text-slate-600 shadow-md border border-slate-100 hidden md:flex items-center justify-center hover:scale-110"><ChevronLeftIcon className="w-4 h-4 md:w-6 md:h-6" /></button>
+                    <button onClick={() => scroll(popularRef, 'right')} className="absolute -right-3 md:-right-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white text-slate-600 shadow-md border border-slate-100 hidden md:flex items-center justify-center hover:scale-110"><ChevronRightIcon className="w-4 h-4 md:w-6 md:h-6" /></button>
                 </div>
             )}
         </section>
@@ -292,16 +293,15 @@ export default function Home() {
   );
 }
 
-// InquiryPopup 컴포넌트는 기존과 동일
-function InquiryPopup({ title, category, onClose }: { title: string; category: string; onClose: () => void }) {
+// InquiryPopup 컴포넌트
+function InquiryPopup({ title, category, onClose, supabase }: { title: string; category: string; onClose: () => void; supabase: any }) {
     const [form, setForm] = useState({ name: '', phone: '', email: '', content: '' });
     const [loading, setLoading] = useState(false);
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-  
+   
     const handleSubmit = async () => {
       if (!form.name || !form.phone) return alert('이름과 연락처는 필수입니다.');
       setLoading(true);
-  
+   
       try {
         const { error } = await supabase.from('inquiries').insert([
           {
@@ -314,9 +314,9 @@ function InquiryPopup({ title, category, onClose }: { title: string; category: s
             category: category 
           }
         ]);
-  
+   
         if (error) throw error;
-  
+   
         alert('성공적으로 접수되었습니다!\n소중한 의견 감사합니다.');
         onClose();
       } catch (err: any) {
@@ -326,7 +326,7 @@ function InquiryPopup({ title, category, onClose }: { title: string; category: s
         setLoading(false);
       }
     };
-  
+   
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
         <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative">
@@ -344,4 +344,4 @@ function InquiryPopup({ title, category, onClose }: { title: string; category: s
         </div>
       </div>
     );
-  }
+}

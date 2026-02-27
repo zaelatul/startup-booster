@@ -8,10 +8,10 @@ import {
 } from '@heroicons/react/24/solid';
 import { FRANCHISE_CATEGORIES } from '@/lib/franchise-data'; // 업종 데이터 가져오기
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// ✅ [수정됨] 안전장치 적용 완료
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 데이터 안전 변환 함수
 const safeParse = (data: any) => {

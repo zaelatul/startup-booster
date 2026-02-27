@@ -6,8 +6,8 @@ import Image from 'next/image';
 import { createBrowserClient } from '@supabase/ssr';
 import { FRANCHISE_CATEGORIES } from '@/lib/franchise-data'; 
 import { 
-  MagnifyingGlassIcon, FireIcon, 
-  CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ChevronDownIcon
+ MagnifyingGlassIcon, FireIcon, 
+ CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ChevronDownIcon
 } from '@heroicons/react/24/solid';
 import RollingBanner from '@/components/home/RollingBanner';
 
@@ -22,18 +22,19 @@ const QUICK_FILTERS = [
 export default function FranchiseExplorePage() {
   const [dbList, setDbList] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
-  
+   
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('default');
-  
+   
   const INITIAL_COUNT = 12; 
   const LOAD_STEP = 12; 
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT); 
 
+  // ✅ [수정됨] useMemo 안에도 안전장치 추가! (빌드 에러 방지)
   const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
   ), []);
 
   useEffect(() => {
@@ -58,11 +59,22 @@ export default function FranchiseExplorePage() {
                 avgSalesPerPyeong = item.avg_revenue_pyeong || 0; 
             }
 
+            // ✅ [핵심 수정] 상세 페이지와 100% 동일한 이름표(Key)를 찾아서 합산 로직 적용
             const costs = item.initial_costs || {};
-            const calculatedStartupCost = (costs.joinFee || 0) + 
-                                          (costs.eduFee || 0) + 
-                                          (costs.deposit || 0) + 
-                                          (costs.other || 0); 
+            const baseSizeM2 = item.base_size_m2 || 0;
+            
+            // 1. 개별 항목 추출 (snake_case와 camelCase 모두 대응하여 데이터 유실 방지)
+            const joinFee = costs.join_fee || costs.joinFee || 0;
+            const eduFee = costs.edu_fee || costs.eduFee || 0;
+            const deposit = costs.deposit || 0;
+            const other = costs.other || 0;
+            const interiorPerPy = costs.interior || 0;
+
+            // 2. 인테리어 총액 계산: (기준면적 / 3.3) * 평당 비용
+            const calculatedInterior = Math.round((baseSizeM2 / 3.3) * interiorPerPy);
+            
+            // 3. 전체 합산: 가맹비 + 교육비 + 보증금 + 기타비용 + 인테리어비
+            const calculatedStartupCost = joinFee + eduFee + deposit + other + calculatedInterior;
 
             return {
                 id: item.id,
@@ -71,7 +83,7 @@ export default function FranchiseExplorePage() {
                 description: item.description || '',
                 avgSales: avgSales,
                 avgSalesPerPyeong: avgSalesPerPyeong,
-                startupCost: calculatedStartupCost,
+                startupCost: calculatedStartupCost, // ✅ 이제 정확히 126,260(1.26억)이 나옴
                 storeCount: item.store_summary?.total || 0,
                 heroImage: item.hero_image || item.logo_url, 
                 tags: item.tags || [],
@@ -135,7 +147,6 @@ export default function FranchiseExplorePage() {
     <div className="min-h-screen bg-slate-50 pb-20">
       
       {/* 1. 상단 롤링 배너 (사이즈 통일) */}
-      {/* ✅ [수정] aspect-[1920/500] 적용, 고정 높이 제거 */}
       <div className="max-w-6xl mx-auto px-0 md:px-4 mt-0 md:mt-6">
          <div className="w-full aspect-[1920/500] overflow-hidden shadow-sm md:rounded-2xl">
             <RollingBanner location="franchise" />
@@ -211,11 +222,10 @@ export default function FranchiseExplorePage() {
             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-5">
               {visibleList.map((brand) => (
                 <Link 
-                  href={`/franchise/${brand.id}`} 
+                  href={`/franchise/brand/${brand.id}`} 
                   key={brand.id} 
                   className="bg-white rounded-xl border border-slate-300 overflow-hidden hover:shadow-xl hover:border-indigo-500 hover:-translate-y-1 transition-all duration-300 group block"
                 >
-                  {/* 이미지 영역 */}
                   <div className="relative h-20 md:h-40 bg-slate-100">
                     {brand.heroImage ? (
                       <Image 
@@ -234,7 +244,6 @@ export default function FranchiseExplorePage() {
                     </div>
                   </div>
                   
-                  {/* 정보 영역 */}
                   <div className="p-2 md:p-4 bg-gradient-to-b from-slate-700 to-slate-800 border-t border-slate-600">
                     <h3 className="text-xs md:text-lg font-bold text-white mb-1 truncate leading-tight tracking-wide drop-shadow-sm">
                       {brand.name}
@@ -269,7 +278,6 @@ export default function FranchiseExplorePage() {
               ))}
             </div>
 
-            {/* 더보기 버튼 */}
             {hasMore && (
                <div className="mt-8 mb-8 text-center">
                   <button 

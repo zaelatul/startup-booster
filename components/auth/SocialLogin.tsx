@@ -1,15 +1,14 @@
 'use client';
 
 import { createBrowserClient } from '@supabase/ssr';
-// ✅ [수정] 아이콘 이름 에러 해결 (Bubble 중복 제거)
 import { ChatBubbleOvalLeftIcon } from '@heroicons/react/24/solid';
 
 export default function SocialLogin() {
-  // 클라이언트용 Supabase 생성
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // ✅ [수정됨] 빌드 에러 방지용 안전장치 추가!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+  const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
   // [카카오 로그인 함수]
   const handleKakaoLogin = async () => {
