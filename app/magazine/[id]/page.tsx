@@ -7,131 +7,168 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { MAGAZINE_ARTICLES as DUMMY_ARTICLES } from '@/lib/magazine-data';
-import { CalendarIcon, ClockIcon, UserCircleIcon, ChevronLeftIcon, ShareIcon } from '@heroicons/react/24/solid';
+import { CalendarIcon, ClockIcon, UserCircleIcon, ChevronLeftIcon, ShareIcon, HomeIcon, UserGroupIcon, BanknotesIcon } from '@heroicons/react/24/solid';
 import RollingBanner from '@/components/home/RollingBanner';
 
 const TuiViewerWrapper = dynamic(() => import('@/components/TuiViewerWrapper'), { ssr: false });
 
-// ✅ [수정됨] 빌드 에러 방지용 안전장치 추가
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- [보강] 자동 계산 기능이 포함된 브랜드 비교표 컴포넌트 ---
+function BrandComparison({ brandA, brandB }: { brandA: any, brandB: any }) {
+  if (!brandA || !brandB) return null;
+
+  // 창업비용 총액 계산기 (가맹비 + 교육비 + 보증금 + 기타 + 인테리어)
+  const calculateTotalCost = (brand: any) => {
+    const costs = brand.initial_costs || {};
+    const baseSizeM2 = brand.base_size_m2 || 0;
+    
+    const joinFee = costs.join_fee || costs.joinFee || 0;
+    const eduFee = costs.edu_fee || costs.eduFee || 0;
+    const deposit = costs.deposit || 0;
+    const other = costs.other || 0;
+    const interiorPerPy = costs.interior || 0;
+
+    // 인테리어 총액 = (기준면적 / 3.3) * 평당 비용
+    const interiorTotal = Math.round((baseSizeM2 / 3.3) * interiorPerPy);
+    return joinFee + eduFee + deposit + other + interiorTotal;
+  };
+
+  const fmtMoney = (val: number) => {
+    if (!val || val === 0) return '정보없음';
+    if (val >= 100000) return `${(val / 100000).toFixed(2)}억`;
+    return `${Math.round(val / 10).toLocaleString()}만`;
+  };
+
+  const brandA_Cost = calculateTotalCost(brandA);
+  const brandB_Cost = calculateTotalCost(brandB);
+
+  return (
+    <div className="my-10 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-fadeIn">
+      <div className="bg-slate-900 p-5 text-center text-white">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-1">Expert Comparison</p>
+        <h4 className="text-xl font-black">라이벌 브랜드 데이터 매치</h4>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        {[brandA, brandB].map((brand, idx) => {
+          const cost = idx === 0 ? brandA_Cost : brandB_Cost;
+          const revenue = brand.avg_revenue?.total || brand.avg_revenue || 0;
+          const storeCount = brand.store_summary?.total || 0;
+          const pyeong = Math.round((brand.base_size_m2 || 0) / 3.3);
+
+          return (
+            <div key={brand.id} className="p-8 text-center bg-white">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-50 p-3 border border-slate-100 shadow-inner">
+                {brand.logo_url ? <img src={brand.logo_url} alt={brand.name} className="max-h-full max-w-full object-contain" /> : <span className="text-xs font-bold text-slate-300">LOGO</span>}
+              </div>
+              <h5 className="text-2xl font-black text-slate-800 mb-8">{brand.name}</h5>
+              
+              <div className="space-y-3">
+                {/* 창업비용 - 자동 계산 적용 */}
+                <div className="rounded-2xl bg-indigo-50 p-5 border border-indigo-100">
+                  <p className="text-[10px] font-bold text-indigo-500 uppercase mb-1 flex justify-center items-center gap-1"><BanknotesIcon className="w-3 h-3"/> 예상 창업비용</p>
+                  <p className="text-2xl font-black text-indigo-900">{fmtMoney(cost)}</p>
+                </div>
+
+                {/* 매출액 */}
+                <div className="rounded-2xl bg-emerald-50 p-5 border border-emerald-100">
+                  <p className="text-[10px] font-bold text-emerald-500 uppercase mb-1 flex justify-center items-center gap-1"><HomeIcon className="w-3 h-3"/> 연평균 매출액</p>
+                  <p className="text-2xl font-black text-emerald-900">{fmtMoney(revenue)}</p>
+                </div>
+
+                {/* 추가 지표: 가맹점수 & 기준평수 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex justify-center items-center gap-1"><UserGroupIcon className="w-3 h-3"/> 가맹점 수</p>
+                    <p className="text-sm font-bold text-slate-700">{storeCount}개</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">기준 평수</p>
+                    <p className="text-sm font-bold text-slate-700">{pyeong}평</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
+        <p className="text-[10px] font-bold text-slate-400">* 모든 데이터는 공정거래위원회 정보공개서 최신 데이터를 기반으로 자동 산출됩니다.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function MagazineDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [kakaoId, setKakaoId] = useState('');
-  const [email, setEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [comparisonData, setComparisonData] = useState<{a: any, b: any} | null>(null);
 
   useEffect(() => {
     async function fetchArticle() {
       if (!id) return;
       setLoading(true);
-      const { data, error } = await supabase.from('magazines').select('*').eq('id', id).single();
-      if (data && !error) {
-         setArticle({ 
-             id: data.id, 
-             category: data.category, 
-             title: data.title, 
-             description: data.subtitle, 
-             author: data.author, 
-             date: new Date(data.created_at).toLocaleDateString(), 
-             readTime: data.read_time, 
-             content: data.content,
-             thumbnailUrl: data.thumbnail_url 
-         });
+      const { data: mag } = await supabase.from('magazines').select('*').eq('id', id).single();
+      
+      if (mag) {
+        setArticle({ ...mag, date: new Date(mag.created_at).toLocaleDateString(), description: mag.subtitle });
+
+        if (mag.compare_brand_a && mag.compare_brand_b) {
+          const { data: brands } = await supabase.from('franchises').select('*').in('id', [mag.compare_brand_a, mag.compare_brand_b]);
+          if (brands && brands.length === 2) {
+            setComparisonData({
+              a: brands.find(b => b.id === mag.compare_brand_a),
+              b: brands.find(b => b.id === mag.compare_brand_b)
+            });
+          }
+        }
       } else {
-         const found = DUMMY_ARTICLES.find(a => a.id === id);
-         setArticle(found || null);
+        setArticle(DUMMY_ARTICLES.find(a => a.id === id));
       }
       setLoading(false);
     }
     fetchArticle();
   }, [id]);
 
-  const handleSubscribe = (e: React.FormEvent) => { e.preventDefault(); setIsSubscribed(true); };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
-  if (!article) return <div className="min-h-screen flex flex-col items-center justify-center"><p>글이 없습니다.</p><Link href="/magazine" className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded">목록으로</Link></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center">데이터 분석 중...</div>;
+  if (!article) return <div className="min-h-screen flex items-center justify-center"><p>존재하지 않는 리포트입니다.</p></div>;
 
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
+      <div className="max-w-6xl mx-auto px-4 mt-4"><RollingBanner location="magazine" /></div>
       
-      {/* 상단 롤링 배너 (매거진용) */}
-      <div className="max-w-6xl mx-auto px-4 mt-4">
-         <RollingBanner location="magazine" />
-      </div>
-
-      {/* 히어로 섹션 */}
-      <div className="relative w-full bg-slate-900 flex flex-col justify-end mt-4 overflow-hidden min-h-[180px] md:min-h-[220px]">
-        {/* 배경 이미지 */}
-        {article.thumbnailUrl && (
-            <>
-                <Image 
-                    src={article.thumbnailUrl} 
-                    alt="Background" 
-                    fill 
-                    // opacity-80 유지 (이미지 선명하게)
-                    className="object-cover opacity-80" 
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-slate-900/10"></div>
-            </>
-        )}
-
-        <div className="absolute top-4 left-4 md:left-8 z-20">
-          <Link href="/magazine" className="inline-flex items-center gap-1 px-3 py-1.5 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white rounded-full text-xs font-bold transition-all border border-white/20"><ChevronLeftIcon className="w-3 h-3" /> 목록</Link>
-        </div>
-        
-        <div className="w-full p-6 md:p-8 max-w-4xl mx-auto z-10 relative">
-          <span className="inline-block px-2.5 py-0.5 rounded bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] md:text-xs font-bold mb-2 md:mb-3 shadow-sm border border-indigo-400/30">{article.category}</span>
-          <h1 className="text-xl md:text-3xl font-extrabold text-white leading-tight mb-3 md:mb-4 drop-shadow-lg break-keep">{article.title}</h1>
-          <div className="flex flex-wrap items-center gap-3 text-[10px] md:text-xs text-slate-200 font-medium">
-            <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm border border-white/10"><UserCircleIcon className="w-3.5 h-3.5 text-indigo-300" />{article.author}</span>
-            <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5 opacity-80" />{article.date}</span>
-            <span className="flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5 opacity-80" />{article.readTime}</span>
+      <div className="relative w-full bg-slate-900 flex flex-col justify-end mt-4 overflow-hidden min-h-[220px]">
+        {article.thumbnail_url && <Image src={article.thumbnail_url} alt="bg" fill className="object-cover opacity-40" priority />}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
+        <div className="w-full p-8 max-w-4xl mx-auto z-10 relative">
+          <span className="inline-block px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold mb-4 shadow-lg border border-indigo-400/30 uppercase tracking-widest">{article.category}</span>
+          <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4 drop-shadow-xl break-keep">{article.title}</h1>
+          <div className="flex items-center gap-4 text-xs text-slate-300 font-medium">
+            <span className="flex items-center gap-1"><UserCircleIcon className="w-4 h-4 text-indigo-400"/> {article.author}</span>
+            <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 opacity-70"/> {article.date}</span>
           </div>
         </div>
       </div>
 
-      <article className="max-w-3xl mx-auto -mt-6 relative z-20 px-3 md:px-4">
-        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl p-6 md:p-10 border border-slate-100 min-h-[400px]">
-          {article.description && (
-              <div className="bg-indigo-50/50 rounded-xl p-4 md:p-6 mb-8 border-l-4 border-indigo-500">
-                  <p className="text-sm md:text-lg font-medium text-indigo-900 leading-relaxed break-keep">{article.description}</p>
-              </div>
-          )}
+      <article className="max-w-3xl mx-auto -mt-10 relative z-20 px-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl p-8 md:p-14 border border-slate-100">
+          {comparisonData && <BrandComparison brandA={comparisonData.a} brandB={comparisonData.b} />}
           
-          {/* [수정] 일반 서적 수준 간격 적용 */}
-          {/* leading-normal (1.5배): 책 읽기 가장 좋은 표준 간격 */}
-          {/* mb-4: 문단 간격도 좁혀서 텍스트 밀집도 향상 */}
-          <div className="prose prose-sm md:prose-lg max-w-none prose-headings:font-bold prose-a:text-indigo-600 break-keep whitespace-normal [&_.toastui-editor-contents_*]:!leading-normal [&_.toastui-editor-contents_p]:!mb-4 [&_.toastui-editor-contents_li]:!my-0">
-              {article.content ? <TuiViewerWrapper content={article.content} /> : <div className="space-y-4">{article.contentParagraphs?.map((p:string, i:number) => <p key={i} className="leading-normal">{p}</p>)}</div>}
+          <div className="prose prose-lg max-w-none prose-headings:font-black prose-p:leading-relaxed prose-slate">
+            <TuiViewerWrapper content={article.content || ''} />
           </div>
 
-          <div className="mt-12 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <button className="flex items-center gap-2 text-xs md:text-sm font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-full transition-all"><ShareIcon className="w-4 h-4" /> 친구에게 공유하기</button>
+          <div className="mt-16 pt-8 border-t border-slate-100 flex justify-center">
+            <button className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-indigo-600 transition-all"><ShareIcon className="w-5 h-5" /> 이 리포트 공유하기</button>
           </div>
         </div>
       </article>
-
-      <div className="max-w-3xl mx-auto px-4 mt-12">
-        <div className="bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg text-center">
-          <h3 className="text-base md:text-xl font-bold text-white mb-2">매거진이 도움이 되셨나요?</h3>
-          <p className="text-slate-300 text-xs md:text-sm mb-6">카톡 아이디와 이메일을 남겨주시면, <span className="text-indigo-400 font-bold">월 2회 최신 창업 정보</span>를 무료로 보내드립니다.</p>
-          {!isSubscribed ? (
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-lg mx-auto">
-              <input type="text" placeholder="카카오톡 ID" className="w-full pl-4 py-2.5 rounded-lg border-0 bg-white/10 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 text-sm" value={kakaoId} onChange={(e) => setKakaoId(e.target.value)} />
-              <input type="email" required placeholder="이메일 (필수)" className="w-full pl-4 py-2.5 rounded-lg border-0 bg-white/10 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 text-sm" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button type="submit" className="sm:w-auto w-full bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-indigo-500 text-sm whitespace-nowrap">구독하기</button>
-            </form>
-          ) : (<div className="bg-white/10 rounded-xl p-3 animate-fadeIn inline-block px-8"><p className="text-sm font-bold text-white">🎉 구독해주셔서 감사합니다!</p></div>)}
-        </div>
-        <div className="text-center mt-8"><Link href="/magazine" className="inline-block px-6 py-2 text-slate-500 text-sm font-medium hover:text-slate-800 transition-colors underline-offset-4 hover:underline">목록으로 돌아가기</Link></div>
-      </div>
     </main>
   );
 }
